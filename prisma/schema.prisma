@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RandomSeedInfo {
+  id                 Int      @id @default(autoincrement())
+  randomSeed         String   @unique @map("random_seed")
+  blockNumber        BigInt?  @map("block_number")
+  transactionHash    String?  @map("transaction_hash")
+  syncedAt           DateTime @default(now()) @map("synced_at")
+  mappingsGenerated  Boolean  @default(false) @map("mappings_generated")
+
+  @@map("random_seed_info")
+}
+
+model NftInfo {
+  tokenId     Int      @id @map("token_id")
+  metadataId  Int?     @map("metadata_id")
+  userAddress String?  @map("user_address") @db.VarChar(42)
+  boxTypeId   Int      @map("box_type_id") @db.SmallInt
+  originId    Int      @default(0) @map("origin_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("nft_info")
+}
+
+model OriginMetadataInfo {
+  originId   Int     @id @map("origin_id")
+  boxTypeId  Int     @map("box_type_id") @db.SmallInt
+  metadata   Json
+  isAssigned Boolean @default(false) @map("is_assigned")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("origin_metadata_info")
+}
+
+model UnrevealMetadataInfo {
+  boxTypeId Int      @id @map("box_type_id") @db.SmallInt
+  metadata  Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("unreveal_metadata_info")
+}
+
+model Phase2Holders {
+  id          Int      @id @default(autoincrement())
+  userAddress String   @map("user_address") @db.VarChar(42)
+  boxTypeId   Int      @map("box_type_id") @db.SmallInt
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("phase2_holders")
+}
