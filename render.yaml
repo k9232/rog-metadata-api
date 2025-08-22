@@ -5,14 +5,17 @@ services:
     env: node
     region: singapore
     plan: starter
-    buildCommand: yarn install && yarn db:generate && yarn build && yarn db:deploy
-    startCommand: yarn start
+    # 移除資料庫部署指令，讓建置過程更單純
+    buildCommand: yarn install && yarn db:generate && yarn build
+    # 在啟動服務前先執行資料庫遷移，更穩定
+    startCommand: yarn db:deploy && yarn start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         fromDatabase:
+          # 這個名字現在可以正確匹配到下面的資料庫服務
           name: rog-metadata-db
           property: connectionString
       - key: CONTRACT_ADDRESS
@@ -25,9 +28,11 @@ services:
         value: .json
 
   # PostgreSQL Database
-  - type: pserv
+  - type: db
+    # 將服務名稱修改為與上面 fromDatabase 的設定一致
     name: rog-metadata-db
-    env: postgresql
+    databaseName: rog_metadata_db # 資料庫內部名稱
+    user: rog_user # 資料庫使用者名稱
     region: singapore
     plan: starter
-    ipAllowList: []
+    ipAllowList: [] # 保持為空，代表只允許 Render 內部服務連線，最安全
