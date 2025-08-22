@@ -80,7 +80,8 @@ const startServer = async () => {
         console.log('🎉 Blind boxes revealed! Mappings generated.')
       })
     } catch (blockchainError) {
-      console.warn('⚠️ Blockchain connection failed, API will start without blockchain features:', blockchainError.message)
+      const errorMessage = blockchainError instanceof Error ? blockchainError.message : String(blockchainError)
+      console.warn('⚠️ Blockchain connection failed, API will start without blockchain features:', errorMessage)
       console.log('💡 This is normal if the smart contract is not deployed yet.')
     }
     
