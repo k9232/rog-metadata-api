@@ -5,18 +5,17 @@ services:
     env: node
     region: singapore
     plan: starter
-    # 移除資料庫部署指令，讓建置過程更單純
+    # 確保 build 指令包含了 yarn build
     buildCommand: yarn install && yarn db:generate && yarn build
-    # 在啟動服務前先執行資料庫遷移，更穩定
-    startCommand: yarn db:deploy && yarn start
+    # 啟動指令要指向 build 之後產生的 js 檔案，通常在 dist/ 目錄下
+    startCommand: yarn db:deploy && node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          # 這個名字現在可以正確匹配到下面的資料庫服務
-          name: rog-metadata-db
+          name: rog-metadata-db # 確保這個名字和你的資料庫服務名稱一致
           property: connectionString
       - key: CONTRACT_ADDRESS
         sync: false
@@ -24,8 +23,6 @@ services:
         sync: false
       - key: METADATA_BASE_URI
         sync: false
-      - key: METADATA_SUFFIX
-        value: .json
 
   # PostgreSQL Database
   - type: db
