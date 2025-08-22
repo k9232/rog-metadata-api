@@ -5,7 +5,6 @@ export class MappingService {
   async generateAllMappings(randomSeed: bigint, maxSupply: number): Promise<void> {
     console.log(`Generating mappings for ${maxSupply} tokens with seed: ${randomSeed.toString()}`)
 
-    // 獲取所有已存在的 NFT
     const existingNfts = await prisma.nftInfo.findMany({
       orderBy: { tokenId: 'asc' }
     })
@@ -16,11 +15,9 @@ export class MappingService {
     }
 
     await prisma.$transaction(async (tx: any) => {
-      // 為每個 NFT 生成 metadataId 並分配 originId
       for (const nft of existingNfts) {
         const metadataId = calculateMetadataId(nft.tokenId, randomSeed, maxSupply)
         
-        // 找一個未分配的 originId (相同 boxType)
         const availableOrigin = await tx.originMetadataInfo.findFirst({
           where: {
             boxTypeId: nft.boxTypeId,
@@ -30,7 +27,6 @@ export class MappingService {
         })
 
         if (availableOrigin) {
-          // 更新 NFT 的 metadataId 和 originId
           await tx.nftInfo.update({
             where: { tokenId: nft.tokenId },
             data: {
@@ -39,7 +35,6 @@ export class MappingService {
             }
           })
 
-          // 標記 origin metadata 為已分配
           await tx.originMetadataInfo.update({
             where: { originId: availableOrigin.originId },
             data: { isAssigned: true }
@@ -76,7 +71,7 @@ export class MappingService {
         tokenId: data.tokenId,
         userAddress: data.userAddress,
         boxTypeId: data.boxTypeId,
-        originId: 0 // 默認未解盲
+        originId: 0
       }
     })
     console.log(`Created NFT info for token ${data.tokenId}, boxType ${data.boxTypeId}`)

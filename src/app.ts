@@ -61,7 +61,6 @@ const startServer = async () => {
   try {
     console.log('🚀 Starting ROG Blind Box Metadata API...')
     
-    // 檢查現有的隨機種子
     const existingSeed = await blockchainService.syncRandomSeedFromContract()
     
     if (existingSeed) {
@@ -73,7 +72,6 @@ const startServer = async () => {
       console.log('⏳ No random seed found, waiting for RandomSeedSet event...')
     }
     
-    // 開始監聽事件
     await blockchainService.startEventListener(async (randomSeed: bigint) => {
       console.log(`🎲 New random seed detected: ${randomSeed.toString()}`)
       const maxSupply = await blockchainService.getMaxSupply()

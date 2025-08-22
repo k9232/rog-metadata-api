@@ -13,7 +13,6 @@ export interface TokenMetadata {
 }
 
 export class MetadataService {
-  // 獲取 Token Metadata（處理盲盒邏輯）
   async getTokenMetadata(tokenId: number): Promise<TokenMetadata | null> {
     const nftInfo = await prisma.nftInfo.findUnique({
       where: { tokenId }
@@ -23,17 +22,13 @@ export class MetadataService {
       return null
     }
 
-    // 檢查是否已解盲 (originId > 0)
     if (nftInfo.originId === 0) {
-      // 未解盲：返回盲盒 metadata
       return await this.getBlindBoxMetadata(nftInfo.boxTypeId)
     } else {
-      // 已解盲：返回真實 metadata
       return await this.getRevealedMetadata(nftInfo.originId)
     }
   }
 
-  // 獲取盲盒 metadata
   async getBlindBoxMetadata(boxTypeId: number): Promise<TokenMetadata> {
     const unrevealMetadata = await prisma.unrevealMetadataInfo.findUnique({
       where: { boxTypeId }
@@ -43,7 +38,6 @@ export class MetadataService {
       return unrevealMetadata.metadata as unknown as TokenMetadata
     }
 
-    // 默認盲盒 metadata
     const boxTypeNames = ['金盒', '紅盒', '藍盒', '公售盒']
     return {
       name: `ROG Avatar ${boxTypeNames[boxTypeId] || '盲盒'}`,
@@ -62,7 +56,6 @@ export class MetadataService {
     }
   }
 
-  // 獲取已解盲的 metadata
   async getRevealedMetadata(originId: number): Promise<TokenMetadata> {
     const originMetadata = await prisma.originMetadataInfo.findUnique({
       where: { originId }
@@ -75,7 +68,6 @@ export class MetadataService {
     return originMetadata.metadata as unknown as TokenMetadata
   }
 
-  // 創建盲盒 metadata
   async createBlindBoxMetadata(boxTypeId: number, metadata: TokenMetadata): Promise<void> {
     await prisma.unrevealMetadataInfo.upsert({
       where: { boxTypeId },
@@ -85,7 +77,6 @@ export class MetadataService {
     console.log(`Created blind box metadata for boxType ${boxTypeId}`)
   }
 
-  // 創建 origin metadata
   async createOriginMetadata(originId: number, boxTypeId: number, metadata: TokenMetadata): Promise<void> {
     await prisma.originMetadataInfo.create({
       data: {
@@ -98,7 +89,6 @@ export class MetadataService {
     console.log(`Created origin metadata for originId ${originId}, boxType ${boxTypeId}`)
   }
 
-  // 添加 Phase2 持有者
   async addPhase2Holder(userAddress: string, boxTypeId: number): Promise<void> {
     await prisma.phase2Holders.create({
       data: {
@@ -109,7 +99,6 @@ export class MetadataService {
     console.log(`Added Phase2 holder: ${userAddress} for boxType ${boxTypeId}`)
   }
 
-  // 檢查是否為 Phase2 持有者
   async isPhase2Holder(userAddress: string, boxTypeId: number): Promise<boolean> {
     const holder = await prisma.phase2Holders.findFirst({
       where: {
@@ -120,7 +109,6 @@ export class MetadataService {
     return !!holder
   }
 
-  // 獲取統計信息
   async getStats(): Promise<{
     totalNfts: number
     revealedNfts: number
@@ -132,7 +120,6 @@ export class MetadataService {
       where: { originId: { gt: 0 } }
     })
 
-    // 按 boxType 統計
     const boxTypeStats = await prisma.nftInfo.groupBy({
       by: ['boxTypeId'],
       _count: {
