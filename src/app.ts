@@ -61,27 +61,32 @@ const startServer = async () => {
   try {
     console.log('🚀 Starting ROG Blind Box Metadata API...')
     
-    const existingSeed = await blockchainService.syncRandomSeedFromContract()
-    
-    if (existingSeed) {
-      console.log(`📦 Found existing random seed: ${existingSeed.toString()}`)
-      const maxSupply = await blockchainService.getMaxSupply()
-      await mappingService.generateAllMappings(existingSeed, maxSupply)
-      console.log('✅ Mappings generated for existing NFTs')
-    } else {
-      console.log('⏳ No random seed found, waiting for RandomSeedSet event...')
+    try {
+      const existingSeed = await blockchainService.syncRandomSeedFromContract()
+      
+      if (existingSeed) {
+        console.log(`📦 Found existing random seed: ${existingSeed.toString()}`)
+        const maxSupply = await blockchainService.getMaxSupply()
+        await mappingService.generateAllMappings(existingSeed, maxSupply)
+        console.log('✅ Mappings generated for existing NFTs')
+      } else {
+        console.log('⏳ No random seed found, waiting for RandomSeedSet event...')
+      }
+      
+      await blockchainService.startEventListener(async (randomSeed: bigint) => {
+        console.log(`🎲 New random seed detected: ${randomSeed.toString()}`)
+        const maxSupply = await blockchainService.getMaxSupply()
+        await mappingService.generateAllMappings(randomSeed, maxSupply)
+        console.log('🎉 Blind boxes revealed! Mappings generated.')
+      })
+    } catch (blockchainError) {
+      console.warn('⚠️ Blockchain connection failed, API will start without blockchain features:', blockchainError.message)
+      console.log('💡 This is normal if the smart contract is not deployed yet.')
     }
-    
-    await blockchainService.startEventListener(async (randomSeed: bigint) => {
-      console.log(`🎲 New random seed detected: ${randomSeed.toString()}`)
-      const maxSupply = await blockchainService.getMaxSupply()
-      await mappingService.generateAllMappings(randomSeed, maxSupply)
-      console.log('🎉 Blind boxes revealed! Mappings generated.')
-    })
     
     app.listen(PORT, () => {
       console.log(`🌐 Server is running on port ${PORT}`)
-      console.log(`📡 Listening for RandomSeedSet events on contract: ${process.env.CONTRACT_ADDRESS}`)
+      console.log(`📡 Contract address: ${process.env.CONTRACT_ADDRESS || 'Not set'}`)
       console.log(`📋 API Documentation available at: http://localhost:${PORT}/`)
     })
   } catch (error) {
