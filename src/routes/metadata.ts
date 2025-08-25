@@ -14,17 +14,20 @@ const metadataService = new MetadataService()
 const mappingService = new MappingService()
 
 /**
- * GET /metadata/:tokenId
- * 
- * Retrieves metadata for a specific NFT token by its ID.
- * This endpoint follows the ERC-721 metadata standard.
- * 
- * @param tokenId - The unique identifier of the NFT token (must be a positive integer)
- * @returns JSON object containing the token's metadata or error message
- * 
- * @example
- * GET /metadata/123
- * Response: { "name": "Token #123", "image": "...", "attributes": [...] }
+ * @swagger
+ * /metadata/{tokenId}:
+ *   get:
+ *     tags: [Metadata]
+ *     summary: Get NFT metadata
+ *     parameters:
+ *       - name: tokenId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get('/metadata/:tokenId', async (req, res) => {
   try {
@@ -48,20 +51,27 @@ router.get('/metadata/:tokenId', async (req, res) => {
 })
 
 /**
- * POST /api/nft
- * 
- * Creates a new NFT information record in the system.
- * This endpoint is typically called when a new NFT is minted or when
- * associating an NFT with specific user and box type information.
- * 
- * @body tokenId - The unique identifier of the NFT token
- * @body userAddress - The wallet address of the token owner
- * @body boxTypeId - The type identifier for the NFT box/category
- * @returns Success confirmation or error message
- * 
- * @example
- * POST /api/nft
- * Body: { "tokenId": 123, "userAddress": "0x123...", "boxTypeId": 1 }
+ * @swagger
+ * /api/nft:
+ *   post:
+ *     tags: [NFT]
+ *     summary: Create NFT info
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tokenId:
+ *                 type: integer
+ *               userAddress:
+ *                 type: string
+ *               boxTypeId:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/api/nft', async (req, res) => {
   try {
@@ -85,17 +95,14 @@ router.post('/api/nft', async (req, res) => {
 })
 
 /**
- * GET /api/stats
- * 
- * Retrieves statistical information about the NFT collection.
- * This endpoint provides aggregate data such as total supply,
- * distribution by box types, and other collection metrics.
- * 
- * @returns JSON object containing collection statistics
- * 
- * @example
- * GET /api/stats
- * Response: { "success": true, "data": { "totalSupply": 1000, "byBoxType": {...} } }
+ * @swagger
+ * /api/stats:
+ *   get:
+ *     tags: [Stats]
+ *     summary: Get collection statistics
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get('/api/stats', async (req, res) => {
   try {
@@ -108,18 +115,25 @@ router.get('/api/stats', async (req, res) => {
 })
 
 /**
- * GET /api/phase2/:address/:boxTypeId
- * 
- * Verifies if a given wallet address is a Phase 2 holder for a specific box type.
- * This endpoint is used for access control and privilege verification in the system.
- * 
- * @param address - The wallet address to check (Ethereum address format)
- * @param boxTypeId - The box type identifier to verify against
- * @returns JSON object indicating Phase 2 holder status with address and box type info
- * 
- * @example
- * GET /api/phase2/0x123.../1
- * Response: { "success": true, "data": { "isPhase2Holder": true, "address": "0x123...", "boxTypeId": 1 } }
+ * @swagger
+ * /api/phase2/{address}/{boxTypeId}:
+ *   get:
+ *     tags: [Phase2]
+ *     summary: Check Phase2 holder status
+ *     parameters:
+ *       - name: address
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: boxTypeId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get('/api/phase2/:address/:boxTypeId', async (req, res) => {
   try {
@@ -142,19 +156,51 @@ router.get('/api/phase2/:address/:boxTypeId', async (req, res) => {
 })
 
 /**
- * GET /api/phase2/:address/:boxTypeId/signature
- * 
- * Retrieves the EIP-191 signature for a Phase2 holder that can be used for smart contract verification.
- * The signature is generated using the user's address and token ID, following the same format
- * expected by the smart contract's verify function.
- * 
- * @param address - The wallet address of the Phase2 holder (Ethereum address format)
- * @param boxTypeId - The box type identifier
- * @returns JSON object containing the signature or error if not found/not a holder
- * 
- * @example
- * GET /api/phase2/0x123.../1/signature
- * Response: { "success": true, "data": { "signature": "0x...", "address": "0x123...", "boxTypeId": 1 } }
+ * @swagger
+ * /api/phase2/{address}/{boxTypeId}/signature:
+ *   get:
+ *     tags: [Phase2]
+ *     summary: Get Phase2 signature
+ *     parameters:
+ *       - name: address
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: boxTypeId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Success
+ *   post:
+ *     tags: [Phase2]
+ *     summary: Generate Phase2 signature
+ *     parameters:
+ *       - name: address
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: boxTypeId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tokenId:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
   try {
@@ -194,22 +240,6 @@ router.get('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
   }
 })
 
-/**
- * POST /api/phase2/:address/:boxTypeId/signature
- * 
- * Generates and stores a signature for a Phase2 holder for a specific token ID.
- * This endpoint should be called when a Phase2 holder needs a signature for smart contract verification.
- * 
- * @param address - The wallet address of the Phase2 holder
- * @param boxTypeId - The box type identifier
- * @body tokenId - The token ID to generate the signature for
- * @returns JSON object containing the generated signature
- * 
- * @example
- * POST /api/phase2/0x123.../1/signature
- * Body: { "tokenId": 123 }
- * Response: { "success": true, "data": { "signature": "0x...", "tokenId": 123 } }
- */
 router.post('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
   try {
     const { address, boxTypeId } = req.params

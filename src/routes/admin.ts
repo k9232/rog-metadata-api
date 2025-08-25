@@ -19,16 +19,14 @@ const blockchainService = new BlockchainService()
 const mappingService = new MappingService()
 
 /**
- * GET /admin/random-seed-status
- * 
- * Retrieves the current status of the random seed from both the blockchain
- * contract and the local database. Used to monitor synchronization status.
- * 
- * @returns JSON object containing random seed, reveal status, and mapping generation info
- * 
- * @example
- * GET /admin/random-seed-status
- * Response: { "success": true, "data": { "randomSeed": "123...", "isRevealed": true, "mappingsGenerated": true } }
+ * @swagger
+ * /admin/random-seed-status:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get random seed status
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get('/admin/random-seed-status', async (req, res) => {
   try {
@@ -55,16 +53,14 @@ router.get('/admin/random-seed-status', async (req, res) => {
 })
 
 /**
- * POST /admin/sync-randomseed
- * 
- * Synchronizes the random seed from the blockchain contract to the local database
- * and generates all token mappings based on the seed and max supply.
- * 
- * @returns JSON object confirming sync completion and the synced random seed
- * 
- * @example
- * POST /admin/sync-randomseed
- * Response: { "success": true, "message": "Random seed sync completed", "randomSeed": "123..." }
+ * @swagger
+ * /admin/sync-randomseed:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Sync random seed from blockchain
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/admin/sync-randomseed', async (req, res) => {
   try {
@@ -87,18 +83,25 @@ router.post('/admin/sync-randomseed', async (req, res) => {
 })
 
 /**
- * POST /admin/blind-box-metadata
- * 
- * Creates metadata for blind box NFTs before they are revealed.
- * This metadata is shown to users before the random seed is revealed.
- * 
- * @body boxTypeId - The box type identifier for the blind box
- * @body metadata - The metadata object containing name, image, description, etc.
- * @returns Success confirmation message
- * 
- * @example
- * POST /admin/blind-box-metadata
- * Body: { "boxTypeId": 1, "metadata": { "name": "Mystery Box", "image": "..." } }
+ * @swagger
+ * /admin/blind-box-metadata:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create blind box metadata
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               boxTypeId:
+ *                 type: integer
+ *               metadata:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/admin/blind-box-metadata', async (req, res) => {
   try {
@@ -121,19 +124,27 @@ router.post('/admin/blind-box-metadata', async (req, res) => {
 })
 
 /**
- * POST /admin/origin-metadata
- * 
- * Creates metadata for a specific origin NFT after reveal.
- * Each origin represents a unique NFT with its own metadata.
- * 
- * @body originId - The unique origin identifier for the NFT
- * @body boxTypeId - The box type this origin belongs to
- * @body metadata - The complete metadata object for this specific NFT
- * @returns Success confirmation message
- * 
- * @example
- * POST /admin/origin-metadata
- * Body: { "originId": 1, "boxTypeId": 1, "metadata": { "name": "Dragon #1", "image": "..." } }
+ * @swagger
+ * /admin/origin-metadata:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create origin metadata
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               originId:
+ *                 type: integer
+ *               boxTypeId:
+ *                 type: integer
+ *               metadata:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/admin/origin-metadata', async (req, res) => {
   try {
@@ -163,18 +174,27 @@ router.post('/admin/origin-metadata', async (req, res) => {
 })
 
 /**
- * POST /admin/batch-origin-metadata
- * 
- * Creates multiple origin metadata entries in a single batch operation.
- * Efficient for uploading large collections of NFT metadata.
- * 
- * @body boxTypeId - The box type all origins belong to
- * @body metadataList - Array of objects containing originId and metadata pairs
- * @returns Success message with count of created entries
- * 
- * @example
- * POST /admin/batch-origin-metadata
- * Body: { "boxTypeId": 1, "metadataList": [{ "originId": 1, "metadata": {...} }, ...] }
+ * @swagger
+ * /admin/batch-origin-metadata:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create batch origin metadata
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               boxTypeId:
+ *                 type: integer
+ *               metadataList:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/admin/batch-origin-metadata', async (req, res) => {
   try {
@@ -210,18 +230,25 @@ router.post('/admin/batch-origin-metadata', async (req, res) => {
 })
 
 /**
- * POST /admin/phase2-holder
- * 
- * Adds a wallet address as a Phase 2 holder for a specific box type.
- * Phase 2 holders have special privileges or access rights in the system.
- * 
- * @body userAddress - The wallet address to grant Phase 2 status
- * @body boxTypeId - The box type for which to grant Phase 2 status
- * @returns Success confirmation with added holder information
- * 
- * @example
- * POST /admin/phase2-holder
- * Body: { "userAddress": "0x123...", "boxTypeId": 1 }
+ * @swagger
+ * /admin/phase2-holder:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Add Phase2 holder
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userAddress:
+ *                 type: string
+ *               boxTypeId:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/admin/phase2-holder', async (req, res) => {
   try {
@@ -247,17 +274,30 @@ router.post('/admin/phase2-holder', async (req, res) => {
 })
 
 /**
- * POST /admin/batch-phase2-holders
- * 
- * Adds multiple wallet addresses as Phase 2 holders in a single batch operation.
- * Efficient for granting Phase 2 status to large groups of users.
- * 
- * @body holders - Array of objects containing userAddress and boxTypeId pairs
- * @returns Success message with count of added holders
- * 
- * @example
- * POST /admin/batch-phase2-holders
- * Body: { "holders": [{ "userAddress": "0x123...", "boxTypeId": 1 }, ...] }
+ * @swagger
+ * /admin/batch-phase2-holders:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Add batch Phase2 holders
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               holders:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     userAddress:
+ *                       type: string
+ *                     boxTypeId:
+ *                       type: integer
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.post('/admin/batch-phase2-holders', async (req, res) => {
   try {
@@ -289,16 +329,14 @@ router.post('/admin/batch-phase2-holders', async (req, res) => {
 })
 
 /**
- * GET /admin/detailed-stats
- * 
- * Retrieves comprehensive statistics about the entire NFT system including
- * collection stats, random seed information, and Phase 2 holder counts.
- * 
- * @returns JSON object containing detailed system statistics
- * 
- * @example
- * GET /admin/detailed-stats
- * Response: { "success": true, "data": { "totalSupply": 1000, "randomSeedInfo": [...], "phase2HoldersCount": [...] } }
+ * @swagger
+ * /admin/detailed-stats:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get detailed system statistics
+ *     responses:
+ *       200:
+ *         description: Success
  */
 router.get('/admin/detailed-stats', async (req, res) => {
   try {
