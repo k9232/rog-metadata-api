@@ -147,6 +147,29 @@ export class MetadataService {
     return !!holder
   }
 
+  async getPhase2HolderInfo(userAddress: string): Promise<{
+    isPhase2Holder: boolean;
+    address: string;
+    boxTypeIds: number[];
+  }> {
+    const holders = await prisma.phase2Holders.findMany({
+      where: {
+        userAddress
+      },
+      select: {
+        boxTypeId: true
+      }
+    })
+    
+    const boxTypeIds = holders.map(holder => holder.boxTypeId)
+    
+    return {
+      isPhase2Holder: boxTypeIds.length > 0,
+      address: userAddress,
+      boxTypeIds
+    }
+  }
+
   async getStats(): Promise<{
     totalNfts: number
     revealedNfts: number

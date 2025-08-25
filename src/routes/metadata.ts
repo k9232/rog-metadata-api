@@ -8,6 +8,7 @@
 import { Router } from 'express'
 import { MetadataService } from '../services/metadata'
 import { MappingService } from '../services/mapping'
+import { getAddress } from 'ethers'
 
 const router = Router()
 const metadataService = new MetadataService()
@@ -116,38 +117,30 @@ router.get('/api/stats', async (req, res) => {
 
 /**
  * @swagger
- * /api/phase2/{address}/{boxTypeId}:
+ * /api/phase2/{address}:
  *   get:
  *     tags: [Phase2]
- *     summary: Check Phase2 holder status
+ *     summary: Get Phase2 holder status and box types
  *     parameters:
  *       - name: address
  *         in: path
  *         required: true
  *         schema:
  *           type: string
- *       - name: boxTypeId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
  *     responses:
  *       200:
  *         description: Success
  */
-router.get('/api/phase2/:address/:boxTypeId', async (req, res) => {
+router.get('/api/phase2/:address', async (req, res) => {
   try {
-    const { address, boxTypeId } = req.params
+    const { address: _address } = req.params
+    const address = getAddress(_address)
     
-    const isHolder = await metadataService.isPhase2Holder(address, parseInt(boxTypeId))
+    const holderInfo = await metadataService.getPhase2HolderInfo(address)
     
     res.json({ 
       success: true, 
-      data: { 
-        isPhase2Holder: isHolder,
-        address,
-        boxTypeId: parseInt(boxTypeId)
-      }
+      data: holderInfo
     })
   } catch (error) {
     console.error('Error checking Phase2 holder:', error)
