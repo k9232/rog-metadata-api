@@ -26,7 +26,8 @@ const swaggerOptions = {
       version: '2.0.0',
       description: 'ROG Blind Box Metadata API documentation'
     },
-    servers: [{ url: 'https://your-render-url.com' }]
+    // servers: [{ url: 'https://your-render-url.com' }]
+    servers: [{ url: 'https://rog-metadata-api.onrender.com' }]
   },
   apis: ['./src/routes/*.ts']
 }
