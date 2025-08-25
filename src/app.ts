@@ -4,6 +4,8 @@ import helmet from 'helmet'
 import dotenv from 'dotenv'
 import metadataRoutes from './routes/metadata'
 import adminRoutes from './routes/admin'
+import swaggerUi from 'swagger-ui-express'
+import swaggerJSDoc from 'swagger-jsdoc'
 import { BlockchainService } from './services/blockchain'
 import { MappingService } from './services/mapping'
 
@@ -15,6 +17,22 @@ const PORT = process.env.PORT || 3000
 app.use(helmet())
 app.use(cors())
 app.use(express.json())
+
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'ROG Metadata API',
+      version: '2.0.0',
+      description: 'ROG Blind Box Metadata API documentation'
+    },
+    servers: [{ url: 'https://your-render-url.com' }]
+  },
+  apis: ['./src/routes/*.ts']
+}
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.use('/', metadataRoutes)
 app.use('/', adminRoutes)
