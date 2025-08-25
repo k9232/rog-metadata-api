@@ -8,7 +8,7 @@ services:
     # 確保 build 指令包含了 yarn build
     buildCommand: yarn install && yarn db:generate && yarn build
     # 啟動指令要指向 build 之後產生的 js 檔案，通常在 dist/ 目錄下
-    startCommand: yarn db:deploy && node dist/index.js
+    startCommand: yarn db:deploy && node dist/app.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -23,6 +23,12 @@ services:
         sync: false
       - key: METADATA_BASE_URI
         sync: false
+      - key: METADATA_SUFFIX
+        value: .json
+      - key: SIGNER_PRIVATE_KEY
+        sync: false
+      - key: RANDOM_SEED_CHECK_INTERVAL
+        value: "30000"
 
   # PostgreSQL Database
   - type: db

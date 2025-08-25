@@ -79,6 +79,12 @@ export class SchedulerService {
     try {
       console.log('Checking for random seed updates...')
       
+      // Check if blockchain service is configured
+      if (!this.blockchainService.isServiceConfigured()) {
+        console.log('⏳ Blockchain service not configured, skipping random seed check...')
+        return
+      }
+      
       // Check if we already have a synced random seed with mappings generated
       const existingSeed = await prisma.randomSeedInfo.findFirst({
         where: { mappingsGenerated: true },
@@ -135,6 +141,14 @@ export class SchedulerService {
    */
   async forceCheck(): Promise<{ success: boolean; randomSeed?: string; message: string }> {
     try {
+      // Check if blockchain service is configured
+      if (!this.blockchainService.isServiceConfigured()) {
+        return {
+          success: false,
+          message: 'Blockchain service not configured. Please check CONTRACT_ADDRESS and RPC_URL environment variables.'
+        }
+      }
+
       const randomSeed = await this.blockchainService.syncRandomSeedFromContract()
       
       if (randomSeed) {

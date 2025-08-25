@@ -3,20 +3,51 @@ import { CONTRACT_CONFIG } from '../config/contracts'
 import prisma from '../config/database'
 
 export class BlockchainService {
-  private provider: ethers.Provider
-  private contract: ethers.Contract
+  private provider: ethers.Provider | null = null
+  private contract: ethers.Contract | null = null
+  private isConfigured: boolean = false
 
   constructor() {
-    this.provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.rpcUrl)
-    this.contract = new ethers.Contract(
-      CONTRACT_CONFIG.address,
-      CONTRACT_CONFIG.abi,
-      this.provider
-    )
+    this.initialize()
+  }
+
+  private initialize(): void {
+    try {
+      // Validate configuration
+      if (!CONTRACT_CONFIG.rpcUrl || CONTRACT_CONFIG.rpcUrl === '') {
+        console.warn('⚠️ RPC_URL not configured, blockchain features will be disabled')
+        return
+      }
+
+      if (!CONTRACT_CONFIG.address || CONTRACT_CONFIG.address === '' || CONTRACT_CONFIG.address === '0x0000000000000000000000000000000000000000') {
+        console.warn('⚠️ CONTRACT_ADDRESS not configured or invalid, blockchain features will be disabled')
+        return
+      }
+
+      // Initialize provider and contract
+      this.provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.rpcUrl)
+      this.contract = new ethers.Contract(
+        CONTRACT_CONFIG.address,
+        CONTRACT_CONFIG.abi,
+        this.provider
+      )
+      this.isConfigured = true
+      console.log('✅ Blockchain service initialized successfully')
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize blockchain service:', error)
+      this.isConfigured = false
+    }
+  }
+
+  private checkConfiguration(): void {
+    if (!this.isConfigured || !this.contract) {
+      throw new Error('Blockchain service not properly configured. Please check CONTRACT_ADDRESS and RPC_URL environment variables.')
+    }
   }
 
   async getRandomSeedStatus(): Promise<{ randomSeed: bigint; isRevealed: boolean }> {
-    const [randomSeed, isRevealed] = await this.contract.getRandomSeedStatus()
+    this.checkConfiguration()
+    const [randomSeed, isRevealed] = await this.contract!.getRandomSeedStatus()
     return {
       randomSeed: BigInt(randomSeed.toString()),
       isRevealed
@@ -24,12 +55,14 @@ export class BlockchainService {
   }
 
   async getMaxSupply(): Promise<number> {
-    const maxSupply = await this.contract.maxSupply()
+    this.checkConfiguration()
+    const maxSupply = await this.contract!.maxSupply()
     return Number(maxSupply)
   }
 
   async syncRandomSeedFromContract(): Promise<bigint | null> {
     try {
+      this.checkConfiguration()
       const { randomSeed, isRevealed } = await this.getRandomSeedStatus()
       
       if (!isRevealed || randomSeed === 0n) {
@@ -59,7 +92,8 @@ export class BlockchainService {
   }
 
   async startEventListener(onRandomSeedSet: (randomSeed: bigint) => Promise<void>): Promise<void> {
-    this.contract.on('RandomSeedSet', async (randomSeed: bigint) => {
+    this.checkConfiguration()
+    this.contract!.on('RandomSeedSet', async (randomSeed: bigint) => {
       console.log(`RandomSeedSet event detected: ${randomSeed.toString()}`)
       
       const existing = await prisma.randomSeedInfo.findUnique({
@@ -80,5 +114,9 @@ export class BlockchainService {
     })
     
     console.log('Started listening for RandomSeedSet events')
+  }
+
+  isServiceConfigured(): boolean {
+    return this.isConfigured
   }
 }
