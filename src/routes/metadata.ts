@@ -115,11 +115,42 @@ router.get('/api/stats', async (req, res) => {
   }
 })
 
+
+export const MINT_CONFIG = {
+  soulboundStartTime: new Date(Math.floor(new Date('2025-08-25 06:00:00').getTime() / 1000) * 1000).toISOString(),
+  soulboundEndTime: new Date((Math.floor(new Date('2025-08-25 06:00:00').getTime() / 1000) + (60 * 60 * 2)) * 1000).toISOString(),
+  publicStartTime: new Date((Math.floor(new Date('2025-08-25 06:00:00').getTime() / 1000) + (60 * 60 * 4)) * 1000).toISOString(),
+  mintPrice: "0"
+}
+
+
 /**
  * @swagger
- * /api/phase2/{address}:
+ * /api/mint/config:
  *   get:
- *     tags: [Phase2]
+ *     tags: [Mint]
+ *     summary: Get mint configuration
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/api/mint/config', async (req, res) => {
+  try {
+    res.json({ 
+      success: true, 
+      data: MINT_CONFIG
+    })
+  } catch (error) {
+    console.error('Error getting mint config:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+/**
+ * @swagger
+ * /api/mint/{address}:
+ *   get:
+ *     tags: [Mint]
  *     summary: Get Phase2 holder status and box types
  *     parameters:
  *       - name: address
@@ -131,7 +162,7 @@ router.get('/api/stats', async (req, res) => {
  *       200:
  *         description: Success
  */
-router.get('/api/phase2/:address', async (req, res) => {
+router.get('/api/mint/:address', async (req, res) => {
   try {
     const { address: _address } = req.params
     const address = getAddress(_address)
@@ -150,9 +181,9 @@ router.get('/api/phase2/:address', async (req, res) => {
 
 /**
  * @swagger
- * /api/phase2/{address}/{boxTypeId}/signature:
+ * /api/mint/{address}/signature:
  *   get:
- *     tags: [Phase2]
+ *     tags: [Mint]
  *     summary: Get Phase2 signature
  *     parameters:
  *       - name: address
@@ -160,132 +191,37 @@ router.get('/api/phase2/:address', async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
- *       - name: boxTypeId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Success
- *   post:
- *     tags: [Phase2]
- *     summary: Generate Phase2 signature
- *     parameters:
- *       - name: address
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *       - name: boxTypeId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               tokenId:
- *                 type: integer
  *     responses:
  *       200:
  *         description: Success
  */
-router.get('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
+router.get('/api/mint/:address/signature', async (req, res) => {
   try {
-    const { address, boxTypeId } = req.params
+    const { address: _address } = req.params
+    const address = getAddress(_address)
     
-    // First verify that the address is a Phase2 holder
-    const isHolder = await metadataService.isPhase2Holder(address, parseInt(boxTypeId))
+    // Get all signatures for this holder
+    const mintInfo = await metadataService.getPhase2HolderMintInfo(address)
     
-    if (!isHolder) {
+    if (!mintInfo) {
       return res.status(404).json({ 
         success: false, 
-        error: 'Address is not a Phase2 holder for this box type' 
-      })
-    }
-    
-    // Get the signature for this holder
-    const signature = await metadataService.getPhase2HolderSignature(address, parseInt(boxTypeId))
-    
-    if (!signature) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Signature not found for this Phase2 holder' 
+        error: 'No signatures found for this Phase2 holder' 
       })
     }
     
     res.json({ 
       success: true, 
-      data: { 
-        signature,
-        address,
-        boxTypeId: parseInt(boxTypeId)
-      }
+      data: mintInfo,
     })
   } catch (error) {
-    console.error('Error getting Phase2 holder signature:', error)
+    console.error('Error getting Phase2 holder signatures:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
 
-router.post('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
-  try {
-    const { address, boxTypeId } = req.params
-    const { tokenId } = req.body
-    
-    if (!tokenId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'tokenId is required' 
-      })
-    }
-    
-    // Verify that the address is a Phase2 holder
-    const isHolder = await metadataService.isPhase2Holder(address, parseInt(boxTypeId))
-    
-    if (!isHolder) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Address is not a Phase2 holder for this box type' 
-      })
-    }
-    
-    // Get the signer private key from environment variables
-    const signerPrivateKey = process.env.SIGNER_PRIVATE_KEY
-    if (!signerPrivateKey) {
-      console.error('SIGNER_PRIVATE_KEY environment variable not set')
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Server configuration error' 
-      })
-    }
-    
-    // Generate and store the signature
-    const signature = await metadataService.generateAndStorePhase2Signature(
-      address,
-      parseInt(tokenId),
-      parseInt(boxTypeId),
-      signerPrivateKey
-    )
-    
-    res.json({ 
-      success: true, 
-      data: { 
-        signature,
-        tokenId: parseInt(tokenId),
-        address,
-        boxTypeId: parseInt(boxTypeId)
-      }
-    })
-  } catch (error) {
-    console.error('Error generating Phase2 holder signature:', error)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-})
+
+
+
 
 export default router

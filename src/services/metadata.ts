@@ -137,6 +137,24 @@ export class MetadataService {
     return holder?.signature || null
   }
 
+  /**
+   * Get all signatures for a Phase2 holder
+   * @param userAddress - The wallet address of the holder
+   * @returns Array of signatures with boxTypeId
+   */
+  async getPhase2HolderMintInfo(userAddress: string) {
+    const holder = await prisma.phase2Holders.findFirst({
+      where: {
+        userAddress,
+        signature: {
+          not: null
+        }
+      }
+    })
+    
+    return holder;
+  }
+
   async isPhase2Holder(userAddress: string, boxTypeId: number): Promise<boolean> {
     const holder = await prisma.phase2Holders.findFirst({
       where: {
