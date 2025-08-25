@@ -148,40 +148,7 @@ router.get('/api/mint/config', async (req, res) => {
 
 /**
  * @swagger
- * /api/mint/{address}:
- *   get:
- *     tags: [Mint]
- *     summary: Get Phase2 holder status and box types
- *     parameters:
- *       - name: address
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Success
- */
-router.get('/api/mint/:address', async (req, res) => {
-  try {
-    const { address: _address } = req.params
-    const address = getAddress(_address)
-    
-    const holderInfo = await metadataService.getPhase2HolderInfo(address)
-    
-    res.json({ 
-      success: true, 
-      data: holderInfo
-    })
-  } catch (error) {
-    console.error('Error checking Phase2 holder:', error)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-})
-
-/**
- * @swagger
- * /api/mint/{address}/signature:
+ * /api/mint/soulbound/{address}:
  *   get:
  *     tags: [Mint]
  *     summary: Get Phase2 signature
@@ -195,7 +162,7 @@ router.get('/api/mint/:address', async (req, res) => {
  *       200:
  *         description: Success
  */
-router.get('/api/mint/:address/signature', async (req, res) => {
+router.get('/api/mint/soulbound/:address', async (req, res) => {
   try {
     const { address: _address } = req.params
     const address = getAddress(_address)
