@@ -2,20 +2,20 @@ services:
   # Web Service (API)
   - type: web
     name: rog-metadata-api
-    env: node
+    runtime: node
     region: singapore
     plan: starter
-    # 確保 build 指令包含了 yarn build
+    # Build command that includes database generation and TypeScript compilation
     buildCommand: yarn install && yarn db:generate && yarn build
-    # 啟動指令要指向 build 之後產生的 js 檔案，通常在 dist/ 目錄下
-    startCommand: yarn db:deploy && node dist/app.js
+    # Start command that runs database migrations and starts the application
+    startCommand: yarn db:deploy && node index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         fromDatabase:
-          name: rog-metadata-db # 確保這個名字和你的資料庫服務名稱一致
+          name: rog-metadata-db
           property: connectionString
       - key: CONTRACT_ADDRESS
         sync: false
@@ -31,11 +31,7 @@ services:
         value: "30000"
 
   # PostgreSQL Database
-  - type: db
-    # 將服務名稱修改為與上面 fromDatabase 的設定一致
+  - type: pserv
     name: rog-metadata-db
-    databaseName: rog_metadata_db # 資料庫內部名稱
-    user: rog_user # 資料庫使用者名稱
     region: singapore
     plan: starter
-    ipAllowList: [] # 保持為空，代表只允許 Render 內部服務連線，最安全
