@@ -50,6 +50,7 @@ model UnrevealMetadataInfo {
 model Phase2Holders {
   id          Int      @id @default(autoincrement())
   userAddress String   @map("user_address") @db.VarChar(42)
+  signature   String?  @map("signature") @db.VarChar(300)
   boxTypeId   Int      @map("box_type_id") @db.SmallInt
   createdAt   DateTime @default(now()) @map("created_at")
 

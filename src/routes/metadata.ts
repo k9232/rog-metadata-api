@@ -141,4 +141,128 @@ router.get('/api/phase2/:address/:boxTypeId', async (req, res) => {
   }
 })
 
+/**
+ * GET /api/phase2/:address/:boxTypeId/signature
+ * 
+ * Retrieves the EIP-191 signature for a Phase2 holder that can be used for smart contract verification.
+ * The signature is generated using the user's address and token ID, following the same format
+ * expected by the smart contract's verify function.
+ * 
+ * @param address - The wallet address of the Phase2 holder (Ethereum address format)
+ * @param boxTypeId - The box type identifier
+ * @returns JSON object containing the signature or error if not found/not a holder
+ * 
+ * @example
+ * GET /api/phase2/0x123.../1/signature
+ * Response: { "success": true, "data": { "signature": "0x...", "address": "0x123...", "boxTypeId": 1 } }
+ */
+router.get('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
+  try {
+    const { address, boxTypeId } = req.params
+    
+    // First verify that the address is a Phase2 holder
+    const isHolder = await metadataService.isPhase2Holder(address, parseInt(boxTypeId))
+    
+    if (!isHolder) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Address is not a Phase2 holder for this box type' 
+      })
+    }
+    
+    // Get the signature for this holder
+    const signature = await metadataService.getPhase2HolderSignature(address, parseInt(boxTypeId))
+    
+    if (!signature) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Signature not found for this Phase2 holder' 
+      })
+    }
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        signature,
+        address,
+        boxTypeId: parseInt(boxTypeId)
+      }
+    })
+  } catch (error) {
+    console.error('Error getting Phase2 holder signature:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+/**
+ * POST /api/phase2/:address/:boxTypeId/signature
+ * 
+ * Generates and stores a signature for a Phase2 holder for a specific token ID.
+ * This endpoint should be called when a Phase2 holder needs a signature for smart contract verification.
+ * 
+ * @param address - The wallet address of the Phase2 holder
+ * @param boxTypeId - The box type identifier
+ * @body tokenId - The token ID to generate the signature for
+ * @returns JSON object containing the generated signature
+ * 
+ * @example
+ * POST /api/phase2/0x123.../1/signature
+ * Body: { "tokenId": 123 }
+ * Response: { "success": true, "data": { "signature": "0x...", "tokenId": 123 } }
+ */
+router.post('/api/phase2/:address/:boxTypeId/signature', async (req, res) => {
+  try {
+    const { address, boxTypeId } = req.params
+    const { tokenId } = req.body
+    
+    if (!tokenId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'tokenId is required' 
+      })
+    }
+    
+    // Verify that the address is a Phase2 holder
+    const isHolder = await metadataService.isPhase2Holder(address, parseInt(boxTypeId))
+    
+    if (!isHolder) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Address is not a Phase2 holder for this box type' 
+      })
+    }
+    
+    // Get the signer private key from environment variables
+    const signerPrivateKey = process.env.SIGNER_PRIVATE_KEY
+    if (!signerPrivateKey) {
+      console.error('SIGNER_PRIVATE_KEY environment variable not set')
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Server configuration error' 
+      })
+    }
+    
+    // Generate and store the signature
+    const signature = await metadataService.generateAndStorePhase2Signature(
+      address,
+      parseInt(tokenId),
+      parseInt(boxTypeId),
+      signerPrivateKey
+    )
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        signature,
+        tokenId: parseInt(tokenId),
+        address,
+        boxTypeId: parseInt(boxTypeId)
+      }
+    })
+  } catch (error) {
+    console.error('Error generating Phase2 holder signature:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router

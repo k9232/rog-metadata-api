@@ -47,6 +47,7 @@ CREATE TABLE "phase2_holders" (
     "id" SERIAL NOT NULL,
     "user_address" VARCHAR(42) NOT NULL,
     "box_type_id" SMALLINT NOT NULL,
+    "signature" VARCHAR(300) NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "phase2_holders_pkey" PRIMARY KEY ("id")

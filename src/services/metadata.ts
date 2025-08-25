@@ -1,5 +1,6 @@
 import prisma from '../config/database'
 import { METADATA_CONFIG } from '../config/contracts'
+import { generatePhase2Signature, verifyPhase2Signature } from '../utils/crypto'
 
 export interface TokenMetadata {
   name: string
@@ -38,22 +39,7 @@ export class MetadataService {
       return unrevealMetadata.metadata as unknown as TokenMetadata
     }
 
-    const boxTypeNames = ['金盒', '紅盒', '藍盒', '公售盒']
-    return {
-      name: `ROG Avatar ${boxTypeNames[boxTypeId] || '盲盒'}`,
-      description: `這是一個未開啟的 ROG Avatar ${boxTypeNames[boxTypeId] || '盲盒'}，等待解盲中...`,
-      image: `${METADATA_CONFIG.baseUri}blind-box/${boxTypeId}.png`,
-      attributes: [
-        {
-          trait_type: 'Status',
-          value: 'Unrevealed'
-        },
-        {
-          trait_type: 'Box Type',
-          value: boxTypeNames[boxTypeId] || `Type ${boxTypeId}`
-        }
-      ]
-    }
+    throw new Error(`Blind box metadata not found for boxType ${boxTypeId}`)
   }
 
   async getRevealedMetadata(originId: number): Promise<TokenMetadata> {
@@ -97,6 +83,58 @@ export class MetadataService {
       }
     })
     console.log(`Added Phase2 holder: ${userAddress} for boxType ${boxTypeId}`)
+  }
+
+  /**
+   * Generate and store signature for a Phase2 holder
+   * @param userAddress - The wallet address of the holder
+   * @param tokenId - The token ID to generate signature for
+   * @param boxTypeId - The box type ID
+   * @param signerPrivateKey - The private key to sign with
+   * @returns The generated signature
+   */
+  async generateAndStorePhase2Signature(
+    userAddress: string, 
+    tokenId: number, 
+    boxTypeId: number,
+    signerPrivateKey: string
+  ): Promise<string> {
+    // Generate the signature
+    const signature = generatePhase2Signature(userAddress, tokenId, signerPrivateKey)
+    
+    // Update the Phase2Holders record with the signature
+    await prisma.phase2Holders.updateMany({
+      where: {
+        userAddress,
+        boxTypeId
+      },
+      data: {
+        signature
+      }
+    })
+    
+    console.log(`Generated and stored signature for Phase2 holder: ${userAddress}, tokenId: ${tokenId}`)
+    return signature
+  }
+
+  /**
+   * Get signature for a Phase2 holder
+   * @param userAddress - The wallet address of the holder
+   * @param boxTypeId - The box type ID
+   * @returns The signature if found, null otherwise
+   */
+  async getPhase2HolderSignature(userAddress: string, boxTypeId: number): Promise<string | null> {
+    const holder = await prisma.phase2Holders.findFirst({
+      where: {
+        userAddress,
+        boxTypeId
+      },
+      select: {
+        signature: true
+      }
+    })
+    
+    return holder?.signature || null
   }
 
   async isPhase2Holder(userAddress: string, boxTypeId: number): Promise<boolean> {
