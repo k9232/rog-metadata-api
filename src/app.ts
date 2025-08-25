@@ -15,8 +15,17 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 
-app.use(helmet())
-app.use(cors())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}))
+
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}))
+
 app.use(express.json())
 
 const swaggerOptions = {
@@ -27,14 +36,43 @@ const swaggerOptions = {
       version: '2.0.0',
       description: 'ROG Blind Box Metadata API documentation'
     },
-    // servers: [{ url: 'https://your-render-url.com' }]
-    servers: [{ url: 'https://rog-metadata-api.onrender.com' }]
+    servers: [
+      { 
+        url: process.env.NODE_ENV === 'production' 
+          ? 'https://rog-metadata-api.onrender.com' 
+          : `http://localhost:${PORT}`,
+        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+      }
+    ]
   },
   apis: ['./src/routes/*.ts']
 }
 
 const swaggerSpec = swaggerJSDoc(swaggerOptions)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+
+// Swagger UI configuration
+const swaggerUiOptions = {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'ROG Metadata API Documentation',
+  swaggerOptions: {
+    docExpansion: 'list',
+    filter: true,
+    showRequestHeaders: true,
+    tryItOutEnabled: true
+  }
+}
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions))
+
+// Serve swagger spec as JSON
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json')
+  res.send(swaggerSpec)
+})
+
+// Handle preflight requests for Swagger UI
+app.options('*', cors())
 
 app.use('/', metadataRoutes)
 app.use('/', adminRoutes)
