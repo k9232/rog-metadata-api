@@ -8,6 +8,7 @@ import swaggerUi from 'swagger-ui-express'
 import swaggerJSDoc from 'swagger-jsdoc'
 import { BlockchainService } from './services/blockchain'
 import { MappingService } from './services/mapping'
+import { schedulerService } from './services/scheduler'
 
 dotenv.config()
 
@@ -89,11 +90,16 @@ const startServer = async () => {
         await mappingService.generateAllMappings(existingSeed, maxSupply)
         console.log('✅ Mappings generated for existing NFTs')
       } else {
-        console.log('⏳ No random seed found, waiting for RandomSeedSet event...')
+        console.log('⏳ No random seed found, starting periodic monitoring...')
+        // Start the scheduler to periodically check for random seed
+        await schedulerService.startRandomSeedMonitoring()
       }
       
+      // Keep the event listener as backup (in case websocket works better than polling)
       await blockchainService.startEventListener(async (randomSeed: bigint) => {
-        console.log(`🎲 New random seed detected: ${randomSeed.toString()}`)
+        console.log(`🎲 New random seed detected via event: ${randomSeed.toString()}`)
+        // Stop scheduler since we got the seed via event
+        schedulerService.stopRandomSeedMonitoring()
         const maxSupply = await blockchainService.getMaxSupply()
         await mappingService.generateAllMappings(randomSeed, maxSupply)
         console.log('🎉 Blind boxes revealed! Mappings generated.')
@@ -102,6 +108,11 @@ const startServer = async () => {
       const errorMessage = blockchainError instanceof Error ? blockchainError.message : String(blockchainError)
       console.warn('⚠️ Blockchain connection failed, API will start without blockchain features:', errorMessage)
       console.log('💡 This is normal if the smart contract is not deployed yet.')
+      
+      // Even if blockchain connection fails initially, start monitoring
+      // The scheduler will handle connection retries
+      console.log('🔄 Starting random seed monitoring with retry logic...')
+      await schedulerService.startRandomSeedMonitoring()
     }
     
     app.listen(PORT, () => {

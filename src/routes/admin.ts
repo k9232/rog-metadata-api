@@ -11,6 +11,7 @@ import { MetadataService } from '../services/metadata'
 import { BlockchainService } from '../services/blockchain'
 import { MappingService } from '../services/mapping'
 import { TokenMetadata } from '../services/metadata'
+import { schedulerService } from '../services/scheduler'
 import prisma from '../config/database'
 
 const router = Router()
@@ -362,6 +363,99 @@ router.get('/admin/detailed-stats', async (req, res) => {
   } catch (error) {
     console.error('Error getting detailed stats:', error)
     res.status(500).json({ success: false, error: 'Internal server error' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/scheduler/status:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get scheduler status
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/admin/scheduler/status', (req, res) => {
+  try {
+    const status = schedulerService.getStatus()
+    res.json({
+      success: true,
+      data: status
+    })
+  } catch (error) {
+    console.error('Error getting scheduler status:', error)
+    res.status(500).json({ success: false, error: 'Internal server error' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/scheduler/start:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Start random seed monitoring
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/scheduler/start', async (req, res) => {
+  try {
+    await schedulerService.startRandomSeedMonitoring()
+    res.json({
+      success: true,
+      message: 'Random seed monitoring started'
+    })
+  } catch (error) {
+    console.error('Error starting scheduler:', error)
+    res.status(500).json({ success: false, error: 'Failed to start monitoring' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/scheduler/stop:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Stop random seed monitoring
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/scheduler/stop', (req, res) => {
+  try {
+    schedulerService.stopRandomSeedMonitoring()
+    res.json({
+      success: true,
+      message: 'Random seed monitoring stopped'
+    })
+  } catch (error) {
+    console.error('Error stopping scheduler:', error)
+    res.status(500).json({ success: false, error: 'Failed to stop monitoring' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/scheduler/force-check:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Force manual random seed check
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/scheduler/force-check', async (req, res) => {
+  try {
+    const result = await schedulerService.forceCheck()
+    res.json({
+      success: result.success,
+      message: result.message,
+      randomSeed: result.randomSeed
+    })
+  } catch (error) {
+    console.error('Error during force check:', error)
+    res.status(500).json({ success: false, error: 'Failed to perform force check' })
   }
 })
 
