@@ -20,8 +20,10 @@ app.use(helmet({
 }))
 
 app.use(cors({
-  origin: true,
-  credentials: true,
+  origin: '*',
+  credentials: false,
+  // origin: true,
+  // credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }))
@@ -72,7 +74,7 @@ app.get('/swagger.json', (req, res) => {
 })
 
 // Handle preflight requests for Swagger UI
-app.options('*', cors())
+// app.options('*', cors())
 
 app.use('/', metadataRoutes)
 app.use('/', adminRoutes)
