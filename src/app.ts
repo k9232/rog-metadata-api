@@ -41,7 +41,7 @@ const swaggerOptions = {
     servers: [
       { 
         url: process.env.NODE_ENV === 'production' 
-          ? 'https://rog-metadata-api.onrender.com' 
+          ? 'https://rog-api.onrender.com' 
           : `http://localhost:${PORT}`,
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
