@@ -115,13 +115,18 @@ router.get('/api/stats', async (req, res) => {
   }
 })
 
+const soulboundStartTime = new Date('2025-09-22T08:00:00');
+const soulboundEndTime = new Date('2025-10-05T08:00:00');
+const publicStartTime = new Date('2025-10-07T08:00:00');
+const publicEndTime = new Date('2025-11-04T08:00:00');
 
 export const MINT_CONFIG = {
-  chainId: 11155111,
-  nftAddress: '0x7c8614E7F475A95FB9362e8709B7623B556E0603',
-  soulboundStartTime: new Date(Math.floor(new Date('2025-08-25 06:00:00').getTime() / 1000) * 1000).toISOString(),
-  soulboundEndTime: new Date((Math.floor(new Date('2025-08-25 06:00:00').getTime() / 1000) + (60 * 60 * 2)) * 1000).toISOString(),
-  publicStartTime: new Date((Math.floor(new Date('2025-08-25 06:00:00').getTime() / 1000) + (60 * 60 * 4)) * 1000).toISOString(),
+  chainId: 1,
+  nftAddress: '0x8cd8969EaDac3346bA149CA5e0eFfD6FD2B83482',
+  soulboundStartTime: soulboundStartTime.toISOString(),
+  soulboundEndTime: soulboundEndTime.toISOString(),
+  publicStartTime: publicStartTime.toISOString(),
+  publicEndTime: publicEndTime.toISOString(),
   mintPrice: "0"
 }
 
