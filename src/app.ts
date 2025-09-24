@@ -30,6 +30,8 @@ app.use(cors({
 
 app.use(express.json())
 
+const isProduction = true;
+
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -40,10 +42,10 @@ const swaggerOptions = {
     },
     servers: [
       { 
-        url: process.env.NODE_ENV === 'production' 
+        url: isProduction 
           ? 'https://rog-api.onrender.com' 
           : `http://localhost:${PORT}`,
-        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+        description: isProduction ? 'Production server' : 'Development server'
       }
     ]
   },
