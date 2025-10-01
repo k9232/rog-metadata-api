@@ -31,15 +31,54 @@ router.use(adminAuth)
  *   get:
  *     tags: [Admin]
  *     summary: Get random seed status
+ *     description: Retrieve the current random seed status from the blockchain contract and database
  *     security:
  *       - AdminApiKey: []
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     randomSeed:
+ *                       type: string
+ *                       example: "12345678901234567890"
+ *                     isRevealed:
+ *                       type: boolean
+ *                       example: true
+ *                     mappingsGenerated:
+ *                       type: boolean
+ *                       example: true
+ *                     syncedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T10:30:00.000Z"
  *       401:
  *         description: Unauthorized - Admin API key required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       403:
  *         description: Forbidden - Invalid admin API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/admin/random-seed-status', async (req, res) => {
   try {
@@ -71,9 +110,39 @@ router.get('/admin/random-seed-status', async (req, res) => {
  *   post:
  *     tags: [Admin]
  *     summary: Sync random seed from blockchain
+ *     description: Manually sync the random seed from the blockchain contract and generate mappings
+ *     security:
+ *       - AdminApiKey: []
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Random seed sync completed"
+ *                 randomSeed:
+ *                   type: string
+ *                   nullable: true
+ *                   example: "12345678901234567890"
+ *       401:
+ *         description: Unauthorized - Admin API key required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/admin/sync-randomseed', async (req, res) => {
   try {
@@ -101,20 +170,52 @@ router.post('/admin/sync-randomseed', async (req, res) => {
  *   post:
  *     tags: [Admin]
  *     summary: Create blind box metadata
+ *     description: Create metadata template for a specific blind box type
+ *     security:
+ *       - AdminApiKey: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - boxTypeId
+ *               - metadata
  *             properties:
  *               boxTypeId:
  *                 type: integer
+ *                 description: Box type identifier (0=金盒, 1=紅盒, 2=藍盒, 3=公售盒)
+ *                 minimum: 0
+ *                 maximum: 3
+ *                 example: 1
  *               metadata:
- *                 type: object
+ *                 $ref: '#/components/schemas/TokenMetadata'
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/admin/blind-box-metadata', async (req, res) => {
   try {
@@ -351,9 +452,35 @@ router.post('/admin/batch-phase2-holders', async (req, res) => {
  *   get:
  *     tags: [Admin]
  *     summary: Get detailed system statistics
+ *     description: Retrieve comprehensive system statistics including database info
+ *     security:
+ *       - AdminApiKey: []
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   description: Detailed statistics object
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/admin/detailed-stats', async (req, res) => {
   try {
@@ -388,9 +515,41 @@ router.get('/admin/detailed-stats', async (req, res) => {
  *   get:
  *     tags: [Admin]
  *     summary: Get scheduler status
+ *     description: Get the current status of the random seed monitoring scheduler
+ *     security:
+ *       - AdminApiKey: []
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isRunning:
+ *                       type: boolean
+ *                       example: true
+ *                     interval:
+ *                       type: integer
+ *                       example: 30000
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/admin/scheduler/status', (req, res) => {
   try {

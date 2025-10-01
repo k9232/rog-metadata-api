@@ -38,7 +38,29 @@ const swaggerOptions = {
     info: {
       title: 'ROG Metadata API',
       version: '2.0.0',
-      description: 'ROG Blind Box Metadata API documentation'
+      description: `
+        # ROG Blind Box Metadata API
+        
+        This API provides endpoints for managing ROG NFT metadata, Phase 2 holder verification, 
+        and administrative functions for the ROG blind box collection.
+        
+        ## Box Types
+        - **0**: 金盒 (Gold Box)
+        - **1**: 紅盒 (Red Box) 
+        - **2**: 藍盒 (Blue Box)
+        - **3**: 公售盒 (Public Sale Box)
+        
+        ## Authentication
+        Admin endpoints require an API key to be passed in the \`x-admin-key\` header.
+      `,
+      contact: {
+        name: 'ROG Team',
+        url: 'https://github.com/your-org/rog-metadata-api'
+      },
+      license: {
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT'
+      }
     },
     servers: [
       { 
@@ -46,6 +68,100 @@ const swaggerOptions = {
           ? 'https://rog-api.onrender.com' 
           : `http://localhost:${PORT}`,
         description: isProduction ? 'Production server' : 'Development server'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        AdminApiKey: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-admin-key',
+          description: 'Admin API key for accessing administrative endpoints'
+        }
+      },
+      schemas: {
+        Error: {
+          type: 'object',
+          properties: {
+            error: {
+              type: 'string',
+              description: 'Error message'
+            },
+            success: {
+              type: 'boolean',
+              example: false
+            }
+          }
+        },
+        SuccessResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            message: {
+              type: 'string',
+              description: 'Success message'
+            }
+          }
+        },
+        TokenMetadata: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              example: 'ROG Avatar #1'
+            },
+            description: {
+              type: 'string',
+              example: 'A unique ROG avatar NFT'
+            },
+            image: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://example.com/image.png'
+            },
+            attributes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  trait_type: {
+                    type: 'string',
+                    example: 'Background'
+                  },
+                  value: {
+                    type: 'string',
+                    example: 'Blue'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    tags: [
+      {
+        name: 'Metadata',
+        description: 'NFT metadata operations'
+      },
+      {
+        name: 'NFT',
+        description: 'NFT collection and token operations'
+      },
+      {
+        name: 'Mint',
+        description: 'Minting configuration and Phase 2 holder operations'
+      },
+      {
+        name: 'Stats',
+        description: 'Collection statistics'
+      },
+      {
+        name: 'Admin',
+        description: 'Administrative operations (requires API key)'
       }
     ]
   },
@@ -57,13 +173,21 @@ const swaggerSpec = swaggerJSDoc(swaggerOptions)
 // Swagger UI configuration
 const swaggerUiOptions = {
   explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
+  customCss: `
+    .swagger-ui .topbar { display: none }
+    .swagger-ui .info { margin-bottom: 30px }
+    .swagger-ui .scheme-container { background: #f7f7f7; padding: 10px; border-radius: 4px; margin-bottom: 20px }
+  `,
   customSiteTitle: 'ROG Metadata API Documentation',
   swaggerOptions: {
     docExpansion: 'list',
     filter: true,
     showRequestHeaders: true,
-    tryItOutEnabled: true
+    tryItOutEnabled: true,
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    defaultModelsExpandDepth: 2,
+    defaultModelExpandDepth: 2
   }
 }
 
@@ -82,14 +206,22 @@ app.use('/', metadataRoutes)
 app.use('/', adminRoutes)
 
 app.get('/', (req, res) => {
+  const baseUrl = isProduction 
+    ? 'https://rog-api.onrender.com' 
+    : `http://localhost:${PORT}`
+    
   res.json({ 
     message: 'ROG Blind Box Metadata API is running!',
     version: '2.0.0',
+    documentation: `${baseUrl}/api-docs`,
+    swagger: `${baseUrl}/swagger.json`,
     endpoints: {
       metadata: '/metadata/:tokenId',
+      nftInfo: 'GET /api/nft',
       createNft: 'POST /api/nft',
       stats: '/api/stats',
-      phase2Check: '/api/phase2/:address/:boxTypeId',
+      mintConfig: '/api/mint/config',
+      phase2Holder: '/api/mint/soulbound/:address',
       admin: {
         randomSeedStatus: '/admin/random-seed-status',
         syncRandomSeed: 'POST /admin/sync-randomseed',
@@ -97,6 +229,12 @@ app.get('/', (req, res) => {
         createOriginMetadata: 'POST /admin/origin-metadata',
         addPhase2Holder: 'POST /admin/phase2-holder',
         detailedStats: '/admin/detailed-stats',
+        scheduler: {
+          status: '/admin/scheduler/status',
+          start: 'POST /admin/scheduler/start',
+          stop: 'POST /admin/scheduler/stop',
+          forceCheck: 'POST /admin/scheduler/force-check'
+        },
         nftSync: {
           status: '/admin/nft-sync/status',
           start: 'POST /admin/nft-sync/start',
@@ -107,10 +245,10 @@ app.get('/', (req, res) => {
       }
     },
     boxTypes: {
-      0: '金盒',
-      1: '紅盒', 
-      2: '藍盒',
-      3: '公售盒'
+      0: '金盒 (Gold Box)',
+      1: '紅盒 (Red Box)', 
+      2: '藍盒 (Blue Box)',
+      3: '公售盒 (Public Sale Box)'
     }
   })
 })

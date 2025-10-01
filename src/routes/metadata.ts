@@ -23,15 +23,41 @@ const blockchainService = new BlockchainService()
  *   get:
  *     tags: [Metadata]
  *     summary: Get NFT metadata
+ *     description: Retrieve metadata for a specific NFT token following the ERC-721 metadata standard
  *     parameters:
  *       - name: tokenId
  *         in: path
  *         required: true
+ *         description: The token ID of the NFT
  *         schema:
  *           type: integer
+ *           minimum: 1
+ *           example: 1
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TokenMetadata'
+ *       400:
+ *         description: Invalid token ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Token not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/metadata/:tokenId', async (req, res) => {
   try {
@@ -60,22 +86,52 @@ router.get('/metadata/:tokenId', async (req, res) => {
  *   post:
  *     tags: [NFT]
  *     summary: Create NFT info
+ *     description: Create NFT information mapping for a specific token
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - tokenId
+ *               - userAddress
+ *               - boxTypeId
  *             properties:
  *               tokenId:
  *                 type: integer
+ *                 description: The token ID of the NFT
+ *                 example: 1
  *               userAddress:
  *                 type: string
+ *                 description: Ethereum wallet address of the user
+ *                 pattern: '^0x[a-fA-F0-9]{40}$'
+ *                 example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
  *               boxTypeId:
  *                 type: integer
+ *                 description: Box type identifier (0=金盒, 1=紅盒, 2=藍盒, 3=公售盒)
+ *                 minimum: 0
+ *                 maximum: 3
+ *                 example: 1
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/api/nft', async (req, res) => {
   try {
@@ -104,9 +160,49 @@ router.post('/api/nft', async (req, res) => {
  *   get:
  *     tags: [Stats]
  *     summary: Get collection statistics
+ *     description: Retrieve comprehensive statistics about the NFT collection
  *     responses:
  *       200:
  *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalTokens:
+ *                       type: integer
+ *                       description: Total number of tokens in the collection
+ *                       example: 6020
+ *                     mintedTokens:
+ *                       type: integer
+ *                       description: Number of tokens that have been minted
+ *                       example: 1500
+ *                     revealedTokens:
+ *                       type: integer
+ *                       description: Number of tokens that have been revealed
+ *                       example: 1200
+ *                     boxTypeStats:
+ *                       type: object
+ *                       description: Statistics by box type
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         "0": 300
+ *                         "1": 400
+ *                         "2": 350
+ *                         "3": 450
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/api/stats', async (req, res) => {
   try {
@@ -278,12 +374,52 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /api/nft:
+ *   get:
+ *     tags: [NFT]
+ *     summary: Get NFT collection information
+ *     description: Retrieve current NFT collection statistics including minted count and total supply
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalSupply:
+ *                       type: integer
+ *                       description: Current number of minted NFTs
+ *                       example: 1500
+ *                     maxSupply:
+ *                       type: integer
+ *                       description: Maximum supply
+ *                       example: 6020
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
 router.get('/api/nft', async (req, res) => {
   try {
-    const maxSupply = await blockchainService.getMaxSupply()
+    const totalSupply = await blockchainService.getTotalSupply()
     res.json({ success: true, data: {
-      count: maxSupply,
-      total: 6020,
+      totalSupply: totalSupply,
+      maxSupply: 6020,
     } })
   } catch (error) {
     console.error('Error getting max supply:', error)

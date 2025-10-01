@@ -60,6 +60,12 @@ export class BlockchainService {
     return Number(maxSupply)
   }
 
+  async getTotalSupply(): Promise<number> {
+    this.checkConfiguration()
+    const totalSupply = await this.contract!.totalSupply()
+    return Number(totalSupply)
+  }
+
   async getOwnerOf(tokenId: number): Promise<string> {
     this.checkConfiguration()
     const owner = await this.contract!.ownerOf(tokenId)
