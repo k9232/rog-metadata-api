@@ -8,7 +8,7 @@
 import { Router } from 'express'
 import { MetadataService } from '../services/metadata'
 import { MappingService } from '../services/mapping'
-import { getAddress } from 'ethers'
+import { getAddress, isAddress } from 'viem'
 
 const router = Router()
 const metadataService = new MetadataService()
@@ -262,7 +262,11 @@ router.get('/api/mint/config', async (req, res) => {
 router.get('/api/mint/soulbound/:address', async (req, res) => {
   try {
     const { address: _address } = req.params
-    const address = getAddress(_address)
+    if (!isAddress(_address, { strict: false })) {
+      res.status(400).json({ error: 'Invalid address' })
+      return
+    }
+    const address = getAddress(_address);
     
     // Get all signatures for this holder
     const mintInfo = await metadataService.getPhase2HolderMintInfo(address)
@@ -286,8 +290,3 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
   }
 })
 
-
-
-
-
-export default router
