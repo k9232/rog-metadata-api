@@ -254,7 +254,7 @@ router.post('/admin/batch-origin-metadata', async (req, res) => {
  */
 router.post('/admin/phase2-holder', async (req, res) => {
   try {
-    const { userAddress, boxTypeId } = req.body
+    const { userAddress, boxTypeId, tokenId } = req.body
     
     if (!userAddress || boxTypeId === undefined) {
       return res.status(400).json({ 
@@ -263,7 +263,7 @@ router.post('/admin/phase2-holder', async (req, res) => {
       })
     }
 
-    await metadataService.addPhase2Holder(userAddress, parseInt(boxTypeId))
+    await metadataService.addPhase2Holder(userAddress, parseInt(boxTypeId), parseInt(tokenId))
     
     res.json({
       success: true,
@@ -314,8 +314,8 @@ router.post('/admin/batch-phase2-holders', async (req, res) => {
 
     let added = 0
     for (const holder of holders) {
-      if (holder.userAddress && holder.boxTypeId !== undefined) {
-        await metadataService.addPhase2Holder(holder.userAddress, parseInt(holder.boxTypeId))
+      if (holder.userAddress && holder.boxTypeId !== undefined && !Number.isNaN(holder.id)) {
+        await metadataService.addPhase2Holder(holder.userAddress, parseInt(holder.boxTypeId), parseInt(holder.id))
         added++
       }
     }

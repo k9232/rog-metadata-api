@@ -75,9 +75,10 @@ export class MetadataService {
     console.log(`Created origin metadata for originId ${originId}, boxType ${boxTypeId}`)
   }
 
-  async addPhase2Holder(userAddress: string, boxTypeId: number): Promise<void> {
+  async addPhase2Holder(userAddress: string, boxTypeId: number, tokenId: number): Promise<void> {
     await prisma.phase2Holders.create({
       data: {
+        id: tokenId,
         userAddress,
         boxTypeId
       }
