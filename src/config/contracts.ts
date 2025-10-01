@@ -1,5 +1,5 @@
 export const CONTRACT_CONFIG = {
-  address: '0x0af5263b4cFfe4F71272d3d2acB7bbB1add056cC',
+  address: '0x2dF9d22362FE45FA2D177a8784297E30329872d9',
   rpcUrl: process.env.RPC_URL || '',
   abi: [
     'function getRandomSeedStatus() external view returns (uint256 randomSeed, bool isRevealed)',

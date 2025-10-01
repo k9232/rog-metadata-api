@@ -6,10 +6,11 @@ dotenv.config()
 
 const prisma = new PrismaClient()
 const wallet = new ethers.Wallet(process.env.SIGNER_PRIVATE_KEY as string)
+console.log(`Wallet: ${wallet.address}`)
 async function main() {
   const emptyPhase2Holders = await prisma.phase2Holders.findMany({
     where: {
-      signature: null
+      // signature: null
     },
     orderBy: {
       id: 'desc'
