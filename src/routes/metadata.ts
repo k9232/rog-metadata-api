@@ -226,6 +226,9 @@ router.get('/api/mint/config', async (req, res) => {
  *                     id:
  *                       type: integer
  *                       example: 1
+ *                     tokenId:
+ *                       type: integer
+ *                       example: 1
  *                     userAddress:
  *                       type: string
  *                       example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
@@ -263,7 +266,6 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
     
     // Get all signatures for this holder
     const mintInfo = await metadataService.getPhase2HolderMintInfo(address)
-    
     if (!mintInfo) {
       return res.status(404).json({ 
         success: false, 
@@ -273,7 +275,10 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
     
     res.json({ 
       success: true, 
-      data: mintInfo,
+      data: {
+        ...mintInfo,
+        tokenId: mintInfo.id
+      },
     })
   } catch (error) {
     console.error('Error getting Phase2 holder signatures:', error)
