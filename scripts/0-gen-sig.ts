@@ -1,9 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { ethers } from "ethers";
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 
 const prisma = new PrismaClient()
-const wallet = new ethers.Wallet('0x6b0035c4f7d8eb3f8f63f26497ad2ce8c73c8121c043323fc7b1cec1ddc3a54c' as string)
+const wallet = new ethers.Wallet(process.env.SIGNER_PRIVATE_KEY as string)
 async function main() {
   const emptyPhase2Holders = await prisma.phase2Holders.findMany({
     where: {

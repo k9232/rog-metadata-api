@@ -13,6 +13,7 @@ import { MappingService } from '../services/mapping'
 import { TokenMetadata } from '../services/metadata'
 import { schedulerService } from '../services/scheduler'
 import { nftSyncService } from '../services/nft-sync'
+import { adminAuth, adminRateLimit } from '../middleware/auth'
 import prisma from '../config/database'
 
 const router = Router()
@@ -20,15 +21,25 @@ const metadataService = new MetadataService()
 const blockchainService = new BlockchainService()
 const mappingService = new MappingService()
 
+// Apply authentication and rate limiting to all admin routes
+router.use(adminRateLimit)
+router.use(adminAuth)
+
 /**
  * @swagger
  * /admin/random-seed-status:
  *   get:
  *     tags: [Admin]
  *     summary: Get random seed status
+ *     security:
+ *       - AdminApiKey: []
  *     responses:
  *       200:
  *         description: Success
+ *       401:
+ *         description: Unauthorized - Admin API key required
+ *       403:
+ *         description: Forbidden - Invalid admin API key
  */
 router.get('/admin/random-seed-status', async (req, res) => {
   try {
@@ -248,6 +259,8 @@ router.post('/admin/batch-origin-metadata', async (req, res) => {
  *                 type: string
  *               boxTypeId:
  *                 type: integer
+ *               tokenId:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Success
@@ -256,10 +269,10 @@ router.post('/admin/phase2-holder', async (req, res) => {
   try {
     const { userAddress, boxTypeId, tokenId } = req.body
     
-    if (!userAddress || boxTypeId === undefined) {
+    if (!userAddress || boxTypeId === undefined || tokenId === undefined) {
       return res.status(400).json({ 
         success: false, 
-        error: 'userAddress and boxTypeId are required' 
+        error: 'userAddress, boxTypeId and tokenId are required' 
       })
     }
 
@@ -297,6 +310,8 @@ router.post('/admin/phase2-holder', async (req, res) => {
  *                       type: string
  *                     boxTypeId:
  *                       type: integer
+ *                     tokenId:
+ *                       type: integer
  *     responses:
  *       200:
  *         description: Success
@@ -314,8 +329,8 @@ router.post('/admin/batch-phase2-holders', async (req, res) => {
 
     let added = 0
     for (const holder of holders) {
-      if (holder.userAddress && holder.boxTypeId !== undefined && !Number.isNaN(holder.id)) {
-        await metadataService.addPhase2Holder(holder.userAddress, parseInt(holder.boxTypeId), parseInt(holder.id))
+      if (holder.userAddress && holder.boxTypeId !== undefined && holder.tokenId !== undefined) {
+        await metadataService.addPhase2Holder(holder.userAddress, parseInt(holder.boxTypeId), parseInt(holder.tokenId))
         added++
       }
     }
