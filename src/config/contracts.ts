@@ -1,11 +1,13 @@
 export const CONTRACT_CONFIG = {
-  address: process.env.CONTRACT_ADDRESS || '',
+  address: '0x0af5263b4cFfe4F71272d3d2acB7bbB1add056cC',
   rpcUrl: process.env.RPC_URL || '',
   abi: [
     'function getRandomSeedStatus() external view returns (uint256 randomSeed, bool isRevealed)',
     'function maxSupply() external view returns (uint64)',
     'function totalSupply() external view returns (uint256)',
-    'event RandomSeedSet(uint256 randomSeed)'
+    'function ownerOf(uint256 tokenId) external view returns (address)',
+    'event RandomSeedSet(uint256 randomSeed)',
+    'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
   ]
 }
 
