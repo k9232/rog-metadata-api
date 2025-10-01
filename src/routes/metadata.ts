@@ -115,10 +115,10 @@ router.get('/api/stats', async (req, res) => {
   }
 })
 
-const soulboundStartTime = new Date('2025-09-22T08:00:00');
-const soulboundEndTime = new Date('2025-10-05T08:00:00');
-const publicStartTime = new Date('2025-10-07T08:00:00');
-const publicEndTime = new Date('2025-11-04T08:00:00');
+const soulboundStartTime = new Date('2025-09-22T08:00:00.000Z');
+const soulboundEndTime = new Date('2025-10-06T07:59:59.999Z');
+const publicStartTime = new Date('2025-10-07T08:00:00.000Z');
+const publicEndTime = new Date('2025-11-04T07:59:59.999Z');
 
 export const MINT_CONFIG = {
   chainId: 1,
