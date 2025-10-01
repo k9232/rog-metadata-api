@@ -30,7 +30,7 @@ app.use(cors({
 
 app.use(express.json())
 
-const isProduction = false;
+const isProduction = process.env.NODE_ENV === 'production';
 
 const swaggerOptions = {
   definition: {
