@@ -10,10 +10,12 @@ import { MetadataService } from '../services/metadata'
 import { MappingService } from '../services/mapping'
 import { getAddress, isAddress } from 'viem'
 import { MINT_CONFIG } from '../config/contracts'
+import { BlockchainService } from '../services/blockchain'
 
 const router = Router()
 const metadataService = new MetadataService()
 const mappingService = new MappingService()
+const blockchainService = new BlockchainService()
 
 /**
  * @swagger
@@ -276,4 +278,17 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
   }
 })
 
-export default router
+router.get('/api/nft', async (req, res) => {
+  try {
+    const maxSupply = await blockchainService.getMaxSupply()
+    res.json({ success: true, data: {
+      count: maxSupply,
+      total: 6020,
+    } })
+  } catch (error) {
+    console.error('Error getting max supply:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+export default router;
