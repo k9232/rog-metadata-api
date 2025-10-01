@@ -290,3 +290,4 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
   }
 })
 
+export default router
