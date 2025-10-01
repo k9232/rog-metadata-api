@@ -60,6 +60,12 @@ export class BlockchainService {
     return Number(maxSupply)
   }
 
+  async getOwnerOf(tokenId: number): Promise<string> {
+    this.checkConfiguration()
+    const owner = await this.contract!.ownerOf(tokenId)
+    return owner
+  }
+
   async syncRandomSeedFromContract(): Promise<bigint | null> {
     try {
       this.checkConfiguration()
@@ -114,6 +120,49 @@ export class BlockchainService {
     })
     
     console.log('Started listening for RandomSeedSet events')
+  }
+
+  async startTransferEventListener(onTransfer: (from: string, to: string, tokenId: bigint) => Promise<void>): Promise<void> {
+    this.checkConfiguration()
+    this.contract!.on('Transfer', async (from: string, to: string, tokenId: bigint) => {
+      console.log(`Transfer event detected: from=${from}, to=${to}, tokenId=${tokenId.toString()}`)
+      await onTransfer(from, to, tokenId)
+    })
+    
+    console.log('Started listening for Transfer events')
+  }
+
+  async getLatestBlockNumber(): Promise<number> {
+    this.checkConfiguration()
+    const blockNumber = await this.provider!.getBlockNumber()
+    return blockNumber
+  }
+
+  async getTransferEvents(fromBlock: number, toBlock?: number): Promise<Array<{
+    from: string;
+    to: string;
+    tokenId: bigint;
+    blockNumber: number;
+    transactionHash: string;
+  }>> {
+    this.checkConfiguration()
+    
+    const filter = this.contract!.filters.Transfer()
+    const events = await this.contract!.queryFilter(filter, fromBlock, toBlock)
+    
+    return events.map(event => {
+      // Type guard to ensure we have an EventLog with args
+      if ('args' in event && event.args) {
+        return {
+          from: event.args[0] as string,
+          to: event.args[1] as string,
+          tokenId: BigInt(event.args[2].toString()),
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash
+        }
+      }
+      throw new Error('Invalid event format')
+    })
   }
 
   isServiceConfigured(): boolean {

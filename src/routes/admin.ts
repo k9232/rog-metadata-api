@@ -12,6 +12,7 @@ import { BlockchainService } from '../services/blockchain'
 import { MappingService } from '../services/mapping'
 import { TokenMetadata } from '../services/metadata'
 import { schedulerService } from '../services/scheduler'
+import { nftSyncService } from '../services/nft-sync'
 import prisma from '../config/database'
 
 const router = Router()
@@ -456,6 +457,167 @@ router.post('/admin/scheduler/force-check', async (req, res) => {
   } catch (error) {
     console.error('Error during force check:', error)
     res.status(500).json({ success: false, error: 'Failed to perform force check' })
+  }
+})
+
+// NFT Sync Management Endpoints
+
+/**
+ * @swagger
+ * /admin/nft-sync/status:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get NFT sync status
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.get('/admin/nft-sync/status', async (req, res) => {
+  try {
+    const syncStatus = await nftSyncService.getSyncStatus()
+    const schedulerStatus = schedulerService.getStatus()
+    
+    res.json({
+      success: true,
+      data: {
+        ...syncStatus,
+        schedulerRunning: schedulerStatus.isNftSyncRunning,
+        syncInterval: schedulerStatus.nftSyncInterval
+      }
+    })
+  } catch (error) {
+    console.error('Error getting NFT sync status:', error)
+    res.status(500).json({ success: false, error: 'Failed to get sync status' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/nft-sync/start:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Start NFT sync monitoring
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/nft-sync/start', async (req, res) => {
+  try {
+    await schedulerService.startNftSyncMonitoring()
+    res.json({
+      success: true,
+      message: 'NFT sync monitoring started'
+    })
+  } catch (error) {
+    console.error('Error starting NFT sync:', error)
+    res.status(500).json({ success: false, error: 'Failed to start NFT sync monitoring' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/nft-sync/stop:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Stop NFT sync monitoring
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/nft-sync/stop', (req, res) => {
+  try {
+    schedulerService.stopNftSyncMonitoring()
+    res.json({
+      success: true,
+      message: 'NFT sync monitoring stopped'
+    })
+  } catch (error) {
+    console.error('Error stopping NFT sync:', error)
+    res.status(500).json({ success: false, error: 'Failed to stop NFT sync monitoring' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/nft-sync/force-sync:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Force manual NFT sync
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fromBlock:
+ *                 type: integer
+ *                 description: Starting block number (optional)
+ *               toBlock:
+ *                 type: integer
+ *                 description: Ending block number (optional)
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/nft-sync/force-sync', async (req, res) => {
+  try {
+    const { fromBlock, toBlock } = req.body
+    const result = await schedulerService.forceNftSync(fromBlock, toBlock)
+    
+    res.json({
+      success: result.success,
+      message: result.message,
+      result: result.result
+    })
+  } catch (error) {
+    console.error('Error during force NFT sync:', error)
+    res.status(500).json({ success: false, error: 'Failed to perform force NFT sync' })
+  }
+})
+
+/**
+ * @swagger
+ * /admin/nft-sync/historical:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Sync historical Transfer events
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fromBlock:
+ *                 type: integer
+ *                 description: Starting block number
+ *               toBlock:
+ *                 type: integer
+ *                 description: Ending block number (optional, defaults to latest)
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+router.post('/admin/nft-sync/historical', async (req, res) => {
+  try {
+    const { fromBlock, toBlock } = req.body
+    
+    if (!fromBlock) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'fromBlock is required' 
+      })
+    }
+
+    const result = await nftSyncService.syncHistoricalEvents(fromBlock, toBlock)
+    
+    res.json({
+      success: true,
+      message: 'Historical sync completed',
+      result
+    })
+  } catch (error) {
+    console.error('Error during historical NFT sync:', error)
+    res.status(500).json({ success: false, error: 'Failed to perform historical sync' })
   }
 })
 

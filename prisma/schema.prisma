@@ -8,12 +8,12 @@ datasource db {
 }
 
 model RandomSeedInfo {
-  id                 Int      @id @default(autoincrement())
-  randomSeed         String   @unique @map("random_seed")
-  blockNumber        BigInt?  @map("block_number")
-  transactionHash    String?  @map("transaction_hash")
-  syncedAt           DateTime @default(now()) @map("synced_at")
-  mappingsGenerated  Boolean  @default(false) @map("mappings_generated")
+  id                Int      @id @default(autoincrement())
+  randomSeed        String   @unique @map("random_seed") @db.VarChar(78)
+  blockNumber       BigInt?  @map("block_number")
+  transactionHash   String?  @map("transaction_hash") @db.VarChar(66)
+  syncedAt          DateTime @default(now()) @map("synced_at")
+  mappingsGenerated Boolean  @default(false) @map("mappings_generated")
 
   @@map("random_seed_info")
 }
@@ -30,10 +30,10 @@ model NftInfo {
 }
 
 model OriginMetadataInfo {
-  originId   Int     @id @map("origin_id")
-  boxTypeId  Int     @map("box_type_id") @db.SmallInt
+  originId   Int      @id @map("origin_id")
+  boxTypeId  Int      @map("box_type_id") @db.SmallInt
   metadata   Json
-  isAssigned Boolean @default(false) @map("is_assigned")
+  isAssigned Boolean  @default(false) @map("is_assigned")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("origin_metadata_info")
@@ -50,9 +50,18 @@ model UnrevealMetadataInfo {
 model Phase2Holders {
   id          Int      @id @default(autoincrement())
   userAddress String   @map("user_address") @db.VarChar(42)
-  signature   String?  @map("signature") @db.VarChar(300)
   boxTypeId   Int      @map("box_type_id") @db.SmallInt
+  signature   String?  @map("signature") @db.VarChar(300)
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("phase2_holders")
+}
+
+model SyncStatus {
+  id                 Int      @id @default(autoincrement())
+  syncType           String   @unique @map("sync_type") @db.VarChar(50)
+  lastProcessedBlock Int      @map("last_processed_block")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("sync_status")
 }

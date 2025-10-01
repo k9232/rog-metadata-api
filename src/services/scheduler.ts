@@ -7,19 +7,24 @@
 
 import { BlockchainService } from './blockchain'
 import { MappingService } from './mapping'
+import { nftSyncService } from './nft-sync'
 import prisma from '../config/database'
 
 export class SchedulerService {
   private blockchainService: BlockchainService
   private mappingService: MappingService
   private intervalId: NodeJS.Timeout | null = null
+  private nftSyncIntervalId: NodeJS.Timeout | null = null
   private isRunning = false
+  private isNftSyncRunning = false
   private checkInterval: number
+  private nftSyncInterval: number
 
-  constructor(checkIntervalMs: number = 30000) { // Default: 30 seconds
+  constructor(checkIntervalMs: number = 30000, nftSyncIntervalMs: number = 60000) { // Default: 30s for random seed, 60s for NFT sync
     this.blockchainService = new BlockchainService()
     this.mappingService = new MappingService()
     this.checkInterval = checkIntervalMs
+    this.nftSyncInterval = nftSyncIntervalMs
   }
 
   /**
@@ -65,10 +70,112 @@ export class SchedulerService {
   /**
    * Get current monitoring status
    */
-  getStatus(): { isRunning: boolean; checkInterval: number } {
+  getStatus(): { 
+    isRunning: boolean; 
+    checkInterval: number;
+    isNftSyncRunning: boolean;
+    nftSyncInterval: number;
+  } {
     return {
       isRunning: this.isRunning,
-      checkInterval: this.checkInterval
+      checkInterval: this.checkInterval,
+      isNftSyncRunning: this.isNftSyncRunning,
+      nftSyncInterval: this.nftSyncInterval
+    }
+  }
+
+  /**
+   * Start NFT Transfer event monitoring and periodic sync
+   */
+  async startNftSyncMonitoring(): Promise<void> {
+    if (this.isNftSyncRunning) {
+      console.log('NFT sync monitoring is already running')
+      return
+    }
+
+    console.log(`🎯 Starting NFT sync monitoring (checking every ${this.nftSyncInterval}ms)`)
+    this.isNftSyncRunning = true
+
+    // Start real-time Transfer event listener
+    await nftSyncService.startTransferMonitoring()
+
+    // Start periodic historical sync to catch any missed events
+    this.nftSyncIntervalId = setInterval(async () => {
+      await this.performHistoricalNftSync()
+    }, this.nftSyncInterval)
+
+    console.log('✅ NFT sync monitoring started')
+  }
+
+  /**
+   * Stop NFT sync monitoring
+   */
+  stopNftSyncMonitoring(): void {
+    if (this.nftSyncIntervalId) {
+      clearInterval(this.nftSyncIntervalId)
+      this.nftSyncIntervalId = null
+    }
+    
+    nftSyncService.stopTransferMonitoring()
+    this.isNftSyncRunning = false
+    console.log('NFT sync monitoring stopped')
+  }
+
+  /**
+   * Perform historical NFT sync to catch any missed events
+   */
+  private async performHistoricalNftSync(): Promise<void> {
+    try {
+      console.log('🔍 Performing historical NFT sync...')
+      
+      if (!this.blockchainService.isServiceConfigured()) {
+        console.log('⏳ Blockchain service not configured, skipping NFT sync...')
+        return
+      }
+
+      const syncStatus = await nftSyncService.getSyncStatus()
+      
+      if (syncStatus.blocksBehind > 0) {
+        console.log(`📦 Syncing ${syncStatus.blocksBehind} blocks behind...`)
+        const result = await nftSyncService.syncHistoricalEvents()
+        console.log(`✅ Historical sync completed: ${result.processed} events processed, ${result.mints} mints, ${result.transfers} transfers`)
+      } else {
+        console.log('✅ NFT sync is up to date')
+      }
+      
+    } catch (error) {
+      console.error('❌ Error during historical NFT sync:', error)
+    }
+  }
+
+  /**
+   * Force NFT sync (useful for admin endpoints)
+   */
+  async forceNftSync(fromBlock?: number, toBlock?: number): Promise<{
+    success: boolean;
+    result?: any;
+    message: string;
+  }> {
+    try {
+      if (!this.blockchainService.isServiceConfigured()) {
+        return {
+          success: false,
+          message: 'Blockchain service not configured. Please check CONTRACT_ADDRESS and RPC_URL environment variables.'
+        }
+      }
+
+      const result = await nftSyncService.syncHistoricalEvents(fromBlock, toBlock)
+      
+      return {
+        success: true,
+        result,
+        message: `NFT sync completed: ${result.processed} events processed, ${result.mints} mints, ${result.transfers} transfers`
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Error during NFT sync: ${error}`
+      }
     }
   }
 

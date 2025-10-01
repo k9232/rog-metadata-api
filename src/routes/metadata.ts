@@ -9,6 +9,7 @@ import { Router } from 'express'
 import { MetadataService } from '../services/metadata'
 import { MappingService } from '../services/mapping'
 import { getAddress, isAddress } from 'viem'
+import { MINT_CONFIG } from '../config/contracts'
 
 const router = Router()
 const metadataService = new MetadataService()
@@ -114,21 +115,6 @@ router.get('/api/stats', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' })
   }
 })
-
-const soulboundStartTime = new Date('2025-09-22T08:00:00.000Z');
-const soulboundEndTime = new Date('2025-10-06T07:59:59.999Z');
-const publicStartTime = new Date('2025-10-07T08:00:00.000Z');
-const publicEndTime = new Date('2025-11-04T07:59:59.999Z');
-
-export const MINT_CONFIG = {
-  chainId: 1,
-  nftAddress: '0x8cd8969EaDac3346bA149CA5e0eFfD6FD2B83482',
-  soulboundStartTime: soulboundStartTime.toISOString(),
-  soulboundEndTime: soulboundEndTime.toISOString(),
-  publicStartTime: publicStartTime.toISOString(),
-  publicEndTime: publicEndTime.toISOString(),
-  mintPrice: "0"
-}
 
 
 /**

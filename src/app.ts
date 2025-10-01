@@ -30,7 +30,7 @@ app.use(cors({
 
 app.use(express.json())
 
-const isProduction = true;
+const isProduction = false;
 
 const swaggerOptions = {
   definition: {
@@ -96,7 +96,14 @@ app.get('/', (req, res) => {
         createBlindBoxMetadata: 'POST /admin/blind-box-metadata',
         createOriginMetadata: 'POST /admin/origin-metadata',
         addPhase2Holder: 'POST /admin/phase2-holder',
-        detailedStats: '/admin/detailed-stats'
+        detailedStats: '/admin/detailed-stats',
+        nftSync: {
+          status: '/admin/nft-sync/status',
+          start: 'POST /admin/nft-sync/start',
+          stop: 'POST /admin/nft-sync/stop',
+          forceSync: 'POST /admin/nft-sync/force-sync',
+          historical: 'POST /admin/nft-sync/historical'
+        }
       }
     },
     boxTypes: {
@@ -136,6 +143,10 @@ const startServer = async () => {
         // Start the scheduler to periodically check for random seed
         await schedulerService.startRandomSeedMonitoring()
       }
+
+      // Start NFT Transfer event monitoring
+      console.log('🎯 Starting NFT Transfer event monitoring...')
+      await schedulerService.startNftSyncMonitoring()
       
       // Keep the event listener as backup (in case websocket works better than polling)
       await blockchainService.startEventListener(async (randomSeed: bigint) => {
@@ -155,6 +166,10 @@ const startServer = async () => {
       // The scheduler will handle connection retries
       console.log('🔄 Starting random seed monitoring with retry logic...')
       await schedulerService.startRandomSeedMonitoring()
+      
+      // Also start NFT sync monitoring even if initial connection fails
+      console.log('🔄 Starting NFT sync monitoring with retry logic...')
+      await schedulerService.startNftSyncMonitoring()
     }
     
     app.listen(PORT, () => {
