@@ -2,7 +2,7 @@ export const CONTRACT_CONFIG = {
   address: '0x471C2c840B69EB92523B1De0EEA791Ae1359AFd7',
   rpcUrl: process.env.RPC_URL || '',
   abi: [
-    'functionㄍㄠ getRandomSeedStatus() external view returns (uint256 randomSeed, bool isRevealed)',
+    'function getRandomSeedStatus() external view returns (uint256 randomSeed, bool isRevealed)',
     'function maxSupply() external view returns (uint64)',
     'function totalSupply() external view returns (uint256)',
     'function ownerOf(uint256 tokenId) external view returns (address)',
