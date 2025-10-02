@@ -17,9 +17,9 @@ export const METADATA_CONFIG = {
 }
 
 const soulboundStartTime = new Date('2025-09-22T08:00:00.000Z');
-const soulboundEndTime = new Date('2025-10-06T07:59:59.999Z');
-const publicStartTime = new Date('2025-10-07T08:00:00.000Z');
-const publicEndTime = new Date('2025-11-04T07:59:59.999Z');
+const soulboundEndTime = new Date('2025-10-16T07:59:59.999Z');
+const publicStartTime = new Date('2025-10-17T08:00:00.000Z');
+const publicEndTime = new Date('2025-11-05T07:59:59.999Z');
 
 export const MINT_CONFIG = {
   chainId: 1,
