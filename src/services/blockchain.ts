@@ -171,6 +171,15 @@ export class BlockchainService {
     })
   }
 
+  async getBlockTimestamp(blockNumber: number): Promise<number> {
+    this.checkConfiguration()
+    const block = await this.provider!.getBlock(blockNumber)
+    if (!block) {
+      throw new Error(`Block ${blockNumber} not found`)
+    }
+    return block.timestamp
+  }
+
   isServiceConfigured(): boolean {
     return this.isConfigured
   }

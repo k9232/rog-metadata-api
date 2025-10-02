@@ -20,20 +20,31 @@
 ### 2. Mint 事件處理
 當檢測到 mint 事件時，系統會：
 - 檢查 mint 地址是否為 Phase2 持有者
+- 檢查區塊時間是否在 publicStartTime 之後
 - 創建新的 NftInfo 記錄，包含：
   - `tokenId`: NFT 的 token ID
   - `metadataId`: null (如需求所述)
   - `userAddress`: mint 到的地址
-  - `boxTypeId`: 如果是 Phase2 持有者則使用其 boxTypeId，否則為 0
+  - `boxTypeId`: 如果是 Phase2 持有者則使用其 boxTypeId，否則為 3
   - `originId`: 0 (如需求所述)
   - `createdAt`: 當前時間
 
-### 3. Phase2 持有者檢查
-在處理 mint 事件時，系統會：
+### 3. boxTypeId 決定邏輯（優先級順序）
+在處理 mint 事件時，系統按以下優先級決定 boxTypeId：
+
+**優先級 1：區塊時間檢查**
+- 如果區塊時間 > publicStartTime，直接設為 boxTypeId = 3
+- 此條件具有最高優先級，無論是否為 Phase2 持有者
+
+**優先級 2：Phase2 持有者檢查**（僅在區塊時間 ≤ publicStartTime 時）
 - 查詢 Phase2Holders 表檢查 mint 地址是否為 Phase2 持有者
 - 如果是 Phase2 持有者，使用其對應的 boxTypeId
-- 如果不是 Phase2 持有者，boxTypeId 設為 0（預設值）
-- 在日誌中標記是否為 Phase2 持有者（👑 或 👤）
+- 如果不是 Phase2 持有者，boxTypeId 設為 3
+
+**後備機制：**
+- 如果無法獲取區塊時間，則回退到 Phase2 持有者檢查
+- 如果沒有區塊號信息，則直接進行 Phase2 持有者檢查
+- 在日誌中標記處理狀態（⏰、👑 或 👤）
 
 ### 4. 轉移事件處理
 對於一般的轉移事件（非 mint），系統會：

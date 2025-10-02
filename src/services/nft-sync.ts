@@ -8,6 +8,7 @@
 import { BlockchainService } from './blockchain'
 import prisma from '../config/database'
 import { zeroAddress } from 'viem'
+import { MINT_CONFIG } from '../config/contracts'
 
 const ZERO_ADDRESS = zeroAddress;
 
@@ -101,21 +102,21 @@ export class NftSyncService {
   /**
    * Handle Transfer event
    */
-  private async handleTransferEvent(from: string, to: string, tokenId: bigint): Promise<void> {
+  private async handleTransferEvent(from: string, to: string, tokenId: bigint, blockNumber?: number): Promise<void> {
     try {
       const tokenIdNum = Number(tokenId)
       console.log(`🔄 Processing Transfer: from=${from}, to=${to}, tokenId=${tokenIdNum}`)
 
       // Check if this is a mint event (from zero address)
       if (from.toLowerCase() === ZERO_ADDRESS.toLowerCase()) {
-        await this.handleMintEvent(to, tokenIdNum)
+        await this.handleMintEvent(to, tokenIdNum, blockNumber)
       } else {
         // Handle regular transfer (update owner)
         await this.handleOwnershipTransfer(from, to, tokenIdNum)
       }
 
       // Update last processed block
-      const currentBlock = await this.blockchainService.getLatestBlockNumber()
+      const currentBlock = blockNumber || await this.blockchainService.getLatestBlockNumber()
       await this.updateLastProcessedBlock(currentBlock)
 
     } catch (error) {
@@ -126,21 +127,64 @@ export class NftSyncService {
   /**
    * Handle mint event (from = zero address)
    */
-  private async handleMintEvent(to: string, tokenId: number): Promise<void> {
+  private async handleMintEvent(to: string, tokenId: number, blockNumber?: number): Promise<void> {
     try {
       console.log(`🎉 Mint detected: tokenId=${tokenId}, to=${to}`)
 
-      // Check if user is a Phase2 holder to determine boxTypeId
-      const phase2Holder = await prisma.phase2Holders.findFirst({
-        where: { userAddress: to }
-      })
+      let boxTypeId: number
 
-      const boxTypeId = phase2Holder ? phase2Holder.boxTypeId : 0
-      
-      if (phase2Holder) {
-        console.log(`👑 Phase2 holder detected: ${to}, boxTypeId=${boxTypeId}`)
+      // Priority 1: Check if block time > publicStartTime
+      if (blockNumber) {
+        try {
+          const blockTimestamp = await this.blockchainService.getBlockTimestamp(blockNumber)
+          const publicStartTime = new Date(MINT_CONFIG.publicStartTime).getTime() / 1000 // Convert to seconds
+          
+          if (blockTimestamp > publicStartTime) {
+            boxTypeId = 3
+            console.log(`⏰ After public start time: ${to}, boxTypeId=${boxTypeId}`)
+          } else {
+            // Priority 2: Check if user is a Phase2 holder (only if before public start time)
+            const phase2Holder = await prisma.phase2Holders.findFirst({
+              where: { userAddress: to }
+            })
+
+            if (phase2Holder) {
+              boxTypeId = phase2Holder.boxTypeId
+              console.log(`👑 Phase2 holder (before public start): ${to}, boxTypeId=${boxTypeId}`)
+            } else {
+              boxTypeId = 3
+              console.log(`👤 Regular user (before public start): ${to}, boxTypeId=${boxTypeId}`)
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ Could not get block timestamp for block ${blockNumber}, falling back to Phase2 check`)
+          
+          // Fallback: Check Phase2 holder if timestamp check fails
+          const phase2Holder = await prisma.phase2Holders.findFirst({
+            where: { userAddress: to }
+          })
+
+          if (phase2Holder) {
+            boxTypeId = phase2Holder.boxTypeId
+            console.log(`👑 Phase2 holder (timestamp check failed): ${to}, boxTypeId=${boxTypeId}`)
+          } else {
+            boxTypeId = 3
+            console.log(`👤 Regular user (timestamp check failed): ${to}, boxTypeId=${boxTypeId}`)
+          }
+        }
       } else {
-        console.log(`👤 Regular user: ${to}, boxTypeId=${boxTypeId}`)
+        // No block number available, check Phase2 holder
+        const phase2Holder = await prisma.phase2Holders.findFirst({
+          where: { userAddress: to }
+        })
+
+        if (phase2Holder) {
+          boxTypeId = phase2Holder.boxTypeId
+          console.log(`👑 Phase2 holder (no block number): ${to}, boxTypeId=${boxTypeId}`)
+        } else {
+          boxTypeId = 3
+          console.log(`👤 Regular user (no block number): ${to}, boxTypeId=${boxTypeId}`)
+        }
       }
 
       // Check if NFT already exists in database
@@ -267,7 +311,7 @@ export class NftSyncService {
           const tokenIdNum = Number(event.tokenId)
           
           if (event.from.toLowerCase() === ZERO_ADDRESS.toLowerCase()) {
-            await this.handleMintEvent(event.to, tokenIdNum)
+            await this.handleMintEvent(event.to, tokenIdNum, event.blockNumber)
             mints++
           } else {
             await this.handleOwnershipTransfer(event.from, event.to, tokenIdNum)

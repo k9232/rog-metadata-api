@@ -23,6 +23,7 @@ const publicEndTime = new Date('2025-11-04T07:59:59.999Z');
 
 export const MINT_CONFIG = {
   chainId: 1,
+  maxSupply: 6020,
   nftAddress: CONTRACT_CONFIG.address,
   soulboundStartTime: soulboundStartTime.toISOString(),
   soulboundEndTime: soulboundEndTime.toISOString(),
