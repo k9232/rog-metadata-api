@@ -10,7 +10,7 @@ console.log(`Wallet: ${wallet.address}`)
 async function main() {
   const emptyPhase2Holders = await prisma.phase2Holders.findMany({
     where: {
-      // signature: null
+      signature: null
     },
     orderBy: {
       id: 'desc'
