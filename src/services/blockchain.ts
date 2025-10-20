@@ -6,6 +6,9 @@ export class BlockchainService {
   private provider: ethers.Provider | null = null
   private contract: ethers.Contract | null = null
   private isConfigured: boolean = false
+  private transferListenerActive: boolean = false
+  private randomSeedListenerActive: boolean = false
+  private errorHandlerSetup: boolean = false
 
   constructor() {
     this.initialize()
@@ -32,11 +35,36 @@ export class BlockchainService {
         this.provider
       )
       this.isConfigured = true
+      // Set up global error handler for filter errors
+      this.setupErrorHandler()
+      
       console.log('✅ Blockchain service initialized successfully')
     } catch (error) {
       console.warn('⚠️ Failed to initialize blockchain service:', error)
       this.isConfigured = false
     }
+  }
+
+  private setupErrorHandler(): void {
+    if (this.errorHandlerSetup || !this.provider) {
+      return
+    }
+
+    // Suppress filter not found errors - these are expected when filters expire
+    // ethers.js will automatically recreate the filter on next poll
+    this.provider.on('error', (error: unknown) => {
+      const err = error as { error?: { message?: string; code?: number }; code?: string }
+      console.log('error!!', err)
+      if (err?.error?.message?.includes('filter not found') || 
+          (err?.code === 'UNKNOWN_ERROR' && err?.error?.code === -32000)) {
+        // Silently ignore filter expiration errors - this is normal behavior
+        return
+      }
+      // Log other errors
+      console.error('Provider error:', error)
+    })
+
+    this.errorHandlerSetup = true
   }
 
   private checkConfiguration(): void {
@@ -105,37 +133,83 @@ export class BlockchainService {
 
   async startEventListener(onRandomSeedSet: (randomSeed: bigint) => Promise<void>): Promise<void> {
     this.checkConfiguration()
-    this.contract!.on('RandomSeedSet', async (randomSeed: bigint) => {
-      console.log(`RandomSeedSet event detected: ${randomSeed.toString()}`)
-      
-      const existing = await prisma.randomSeedInfo.findUnique({
-        where: { randomSeed: randomSeed.toString() }
-      })
+    
+    if (this.randomSeedListenerActive) {
+      console.log('RandomSeedSet listener already active')
+      return
+    }
 
-      if (!existing) {
-        await prisma.randomSeedInfo.create({
-          data: {
-            randomSeed: randomSeed.toString(),
-            syncedAt: new Date()
-          }
-        })
-        console.log(`Stored random seed from event: ${randomSeed.toString()}`)
+    this.randomSeedListenerActive = true
+    
+    // Remove any existing listeners first
+    this.contract!.removeAllListeners('RandomSeedSet')
+    
+    this.contract!.on('RandomSeedSet', async (randomSeed: bigint) => {
+      try {
+        console.log(`RandomSeedSet event detected: ${randomSeed.toString()}`)
         
-        await onRandomSeedSet(randomSeed)
+        const existing = await prisma.randomSeedInfo.findUnique({
+          where: { randomSeed: randomSeed.toString() }
+        })
+
+        if (!existing) {
+          await prisma.randomSeedInfo.create({
+            data: {
+              randomSeed: randomSeed.toString(),
+              syncedAt: new Date()
+            }
+          })
+          console.log(`Stored random seed from event: ${randomSeed.toString()}`)
+          
+          await onRandomSeedSet(randomSeed)
+        }
+      } catch (error) {
+        console.error('Error handling RandomSeedSet event:', error)
       }
     })
     
     console.log('Started listening for RandomSeedSet events')
   }
 
+  stopEventListener(): void {
+    if (this.contract) {
+      this.contract.removeAllListeners('RandomSeedSet')
+    }
+    this.randomSeedListenerActive = false
+    console.log('Stopped RandomSeedSet event listener')
+  }
+
   async startTransferEventListener(onTransfer: (from: string, to: string, tokenId: bigint) => Promise<void>): Promise<void> {
     this.checkConfiguration()
+    
+    if (this.transferListenerActive) {
+      console.log('Transfer listener already active')
+      return
+    }
+
+    this.transferListenerActive = true
+    
+    // Remove any existing listeners first
+    this.contract!.removeAllListeners('Transfer')
+    
     this.contract!.on('Transfer', async (from: string, to: string, tokenId: bigint) => {
-      console.log(`Transfer event detected: from=${from}, to=${to}, tokenId=${tokenId.toString()}`)
-      await onTransfer(from, to, tokenId)
+      try {
+        console.log(`Transfer event detected: from=${from}, to=${to}, tokenId=${tokenId.toString()}`)
+        await onTransfer(from, to, tokenId)
+      } catch (error) {
+        console.error('Error handling Transfer event:', error)
+      }
     })
     
     console.log('Started listening for Transfer events')
+  }
+
+  stopTransferEventListener(): void {
+    if (this.contract) {
+      this.contract.removeAllListeners('Transfer')
+    }
+    this.transferListenerActive = false
+    console.log('Stopped Transfer event listener')
   }
 
   async getLatestBlockNumber(): Promise<number> {
