@@ -344,7 +344,7 @@ router.get('/api/nft', async (req, res) => {
   try {
     const totalSupply = await blockchainService.getTotalSupply()
     res.json({ success: true, data: {
-      totalSupply: totalSupply,
+      totalSupply: MINT_CONFIG.maxSupply - totalSupply,
       maxSupply: MINT_CONFIG.maxSupply,
     } })
   } catch (error) {
