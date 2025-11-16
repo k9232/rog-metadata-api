@@ -7,7 +7,8 @@ export const CONTRACT_CONFIG = {
     'function totalSupply() external view returns (uint256)',
     'function ownerOf(uint256 tokenId) external view returns (address)',
     'event RandomSeedSet(uint256 randomSeed)',
-    'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
+    'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
+    'function tokensOfOwner(address owner) external view returns (uint256[] memory)'
   ]
 }
 
