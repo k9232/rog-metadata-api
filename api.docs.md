@@ -135,15 +135,15 @@ API Docs: https://rog-api.onrender.com/api-docs
 
 ---
 
-### 4. **取得揭示訊息 API** - `/metadata/reveal/message`
+### 4. **取得開盲盒簽名訊息 API** - `/metadata/reveal/message`
 
-**功能：** 產生用於 NFT 揭示的簽名訊息
+**功能：** 產生用於 NFT 開盲盒的簽名訊息
 
 **請求方式：** `GET`
 
 **參數：**
 - `tokenId`: NFT 的 Token ID (例如: `1`)
-- `ownerAddress`: 聲稱擁有該 NFT 的錢包地址 (例如: `0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6`)
+- `ownerAddress`: 擁有該 NFT 的錢包地址 (例如: `0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6`)
 
 **完整 URL 範例：** `https://rog-api.onrender.com/metadata/reveal/message?tokenId=1&ownerAddress=0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6`
 
@@ -152,7 +152,7 @@ API Docs: https://rog-api.onrender.com/api-docs
 {
   "success": true,
   "data": {
-    "message": "Reveal token 1 by 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+    "message": "SLASH206: Reveal token 1 by 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
   }
 }
 ```
@@ -164,15 +164,15 @@ API Docs: https://rog-api.onrender.com/api-docs
 - **500** - 伺服器內部錯誤
 
 **用途：** 
-- 在揭示 NFT 前，先取得需要簽名的訊息
+- 在開盲盒 NFT 前，先取得需要簽名的訊息
 - 使用者用錢包簽署此訊息後，可證明自己是 Token 的擁有者
-- 配合下一個 API 使用，完成 NFT 揭示流程
+- 配合下一個 API 使用，完成 NFT 開盲盒流程
 
 ---
 
-### 5. **揭示 NFT API** - `/metadata/reveal/{tokenId}`
+### 5. **開盲盒 NFT API** - `/metadata/reveal/{tokenId}`
 
-**功能：** 使用簽名驗證後揭示 NFT 的真實內容
+**功能：** 使用簽名驗證後開盲盒 NFT 的真實內容
 
 **請求方式：** `GET`
 
@@ -183,14 +183,11 @@ API Docs: https://rog-api.onrender.com/api-docs
 
 **完整 URL 範例：** `https://rog-api.onrender.com/metadata/reveal/1?message=Reveal%20token%201&signature=0x...`
 
-**目前狀態：** ⚠️ 尚未實作
-
 **預期用途：**
 - 驗證簽名確認使用者是 Token 擁有者
-- 將盲盒 NFT 揭示為真實的 NFT 內容
-- 更新資料庫中的 NFT 資訊
+- 將盲盒 NFT 開盲盒為真實的 NFT 內容
 
-**揭示流程說明：**
+**開盲盒流程說明：**
 ```
 步驟 1: 呼叫 /metadata/reveal/message API 取得簽名訊息
     ↓
@@ -198,7 +195,7 @@ API Docs: https://rog-api.onrender.com/api-docs
     ↓
 步驟 3: 呼叫 /metadata/reveal/:tokenId API 並帶入簽名
     ↓
-步驟 4: 系統驗證簽名並揭示 NFT 真實內容
+步驟 4: 系統驗證簽名並開盲盒 NFT
 ```
 
 ---

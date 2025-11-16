@@ -226,7 +226,7 @@ router.get('/metadata/reveal/message', async (req, res) => {
     // }
 
     // Generate the message for signing
-    const message = `Reveal token ${tokenId} by ${normalizedAddress}`
+    const message = `SLASH206: Reveal token ${tokenId} by ${normalizedAddress}`
 
     return res.json({ 
       success: true, 
