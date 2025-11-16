@@ -9,6 +9,7 @@ import swaggerJSDoc from 'swagger-jsdoc'
 import { BlockchainService } from './services/blockchain'
 import { MappingService } from './services/mapping'
 import { schedulerService } from './services/scheduler'
+import { MINT_CONFIG } from './config/contracts'
 
 dotenv.config()
 
@@ -267,7 +268,11 @@ const mappingService = new MappingService()
 const startServer = async () => {
   try {
     console.log('🚀 Starting ROG Blind Box Metadata API...')
-    
+
+    // const maxSupply = await blockchainService.getMaxSupply();
+    // await mappingService.generateAllMappings(BigInt(MINT_CONFIG.randomSeed), maxSupply)
+    // console.log('✅ Mappings generated for existing NFTs')
+
     try {
       const existingSeed = await blockchainService.syncRandomSeedFromContract()
       
@@ -287,14 +292,14 @@ const startServer = async () => {
       await schedulerService.startNftSyncMonitoring()
       
       // Keep the event listener as backup (in case websocket works better than polling)
-      await blockchainService.startEventListener(async (randomSeed: bigint) => {
-        console.log(`🎲 New random seed detected via event: ${randomSeed.toString()}`)
-        // Stop scheduler since we got the seed via event
-        schedulerService.stopRandomSeedMonitoring()
-        const maxSupply = await blockchainService.getMaxSupply()
-        await mappingService.generateAllMappings(randomSeed, maxSupply)
-        console.log('🎉 Blind boxes revealed! Mappings generated.')
-      })
+      // await blockchainService.startEventListener(async (randomSeed: bigint) => {
+      //   console.log(`🎲 New random seed detected via event: ${randomSeed.toString()}`)
+      //   // Stop scheduler since we got the seed via event
+      //   schedulerService.stopRandomSeedMonitoring()
+      //   const maxSupply = await blockchainService.getMaxSupply()
+      //   await mappingService.generateAllMappings(randomSeed, maxSupply)
+      //   console.log('🎉 Blind boxes revealed! Mappings generated.')
+      // })
     } catch (blockchainError) {
       const errorMessage = blockchainError instanceof Error ? blockchainError.message : String(blockchainError)
       console.warn('⚠️ Blockchain connection failed, API will start without blockchain features:', errorMessage)

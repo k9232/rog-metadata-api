@@ -29,6 +29,7 @@ export const MINT_CONFIG = {
   soulboundEndTime: soulboundEndTime.toISOString(),
   publicStartTime: publicStartTime.toISOString(),
   publicEndTime: publicEndTime.toISOString(),
+  randomSeed: '92653667064181135059616424580200246915221335569266647038007595748171226021888',
   mintPrice: "0"
 }
 

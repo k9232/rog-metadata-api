@@ -13,37 +13,57 @@ export class MappingService {
       console.log('No existing NFTs found, skipping mapping generation')
       return
     }
+    for (const nft of existingNfts) {
+      const metadataId = calculateMetadataId(nft.tokenId, randomSeed, maxSupply)
+
+      await prisma.nftInfo.update({
+        where: { tokenId: nft.tokenId },
+        data: { metadataId }
+      })
+      console.log(`Updated NFT ${nft.tokenId} with metadataId ${metadataId}`)
+    }
+    await prisma.randomSeedInfo.update({
+      where: { randomSeed: randomSeed.toString() },
+      data: { mappingsGenerated: true }
+    });
+    console.log('✅ Mappings generated for existing NFTs')
+    return;
 
     await prisma.$transaction(async (tx: any) => {
       for (const nft of existingNfts) {
         const metadataId = calculateMetadataId(nft.tokenId, randomSeed, maxSupply)
-        
-        const availableOrigin = await tx.originMetadataInfo.findFirst({
-          where: {
-            boxTypeId: nft.boxTypeId,
-            isAssigned: false
-          },
-          orderBy: { originId: 'asc' }
+
+        await tx.nftInfo.update({
+          where: { tokenId: nft.tokenId },
+          data: { metadataId }
         })
 
-        if (availableOrigin) {
-          await tx.nftInfo.update({
-            where: { tokenId: nft.tokenId },
-            data: {
-              metadataId,
-              originId: availableOrigin.originId
-            }
-          })
+        // const availableOrigin = await tx.originMetadataInfo.findFirst({
+        //   where: {
+        //     boxTypeId: nft.boxTypeId,
+        //     isAssigned: false
+        //   },
+        //   orderBy: { originId: 'asc' }
+        // })
 
-          await tx.originMetadataInfo.update({
-            where: { originId: availableOrigin.originId },
-            data: { isAssigned: true }
-          })
+        // if (availableOrigin) {
+        //   await tx.nftInfo.update({
+        //     where: { tokenId: nft.tokenId },
+        //     data: {
+        //       metadataId,
+        //       originId: availableOrigin.originId
+        //     }
+        //   })
 
-          console.log(`Token ${nft.tokenId} -> MetadataId ${metadataId}, OriginId ${availableOrigin.originId}`)
-        } else {
-          console.warn(`No available origin metadata for boxType ${nft.boxTypeId}`)
-        }
+        //   await tx.originMetadataInfo.update({
+        //     where: { originId: availableOrigin.originId },
+        //     data: { isAssigned: true }
+        //   })
+
+        //   console.log(`Token ${nft.tokenId} -> MetadataId ${metadataId}, OriginId ${availableOrigin.originId}`)
+        // } else {
+        //   console.warn(`No available origin metadata for boxType ${nft.boxTypeId}`)
+        // }
       }
       
       await tx.randomSeedInfo.update({
