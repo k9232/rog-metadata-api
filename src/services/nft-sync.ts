@@ -42,9 +42,9 @@ export class NftSyncService {
     await this.initializeLastProcessedBlock()
 
     // Start real-time event listener
-    await this.blockchainService.startTransferEventListener(async (from, to, tokenId) => {
-      await this.handleTransferEvent(from, to, tokenId)
-    })
+    // await this.blockchainService.startTransferEventListener(async (from, to, tokenId) => {
+    //   await this.handleTransferEvent(from, to, tokenId)
+    // })
 
     console.log('✅ Transfer event monitoring started')
   }

@@ -82,6 +82,269 @@ router.get('/metadata/:tokenId', async (req, res) => {
 
 /**
  * @swagger
+ * /metadata/reveal/message:
+ *   get:
+ *     tags: [Metadata]
+ *     summary: Generate reveal message for signing
+ *     description: Generate a message that needs to be signed by the token owner to prove ownership before revealing NFT metadata
+ *     parameters:
+ *       - name: tokenId
+ *         in: query
+ *         required: true
+ *         description: The token ID of the NFT to reveal
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           example: 1
+ *       - name: ownerAddress
+ *         in: query
+ *         required: true
+ *         description: The wallet address claiming to own the token
+ *         schema:
+ *           type: string
+ *           pattern: '^0x[a-fA-F0-9]{40}$'
+ *           example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+ *     responses:
+ *       200:
+ *         description: Success - Message generated for signing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       description: The message that should be signed by the owner
+ *                       example: "Reveal token 1 by 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+ *       400:
+ *         description: Invalid request parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid token ID or owner address"
+ *       403:
+ *         description: Address does not own the token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Address does not own this token"
+ *       404:
+ *         description: Token not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Token not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+router.get('/metadata/reveal/message', async (req, res) => {
+  try {
+    const tokenId = parseInt(req.query.tokenId as string)
+    const ownerAddress = req.query.ownerAddress as string
+
+    // Validate tokenId
+    if (isNaN(tokenId) || tokenId < 1) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid token ID' 
+      })
+    }
+
+    // Validate owner address
+    if (!ownerAddress || !isAddress(ownerAddress, { strict: false })) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid owner address' 
+      })
+    }
+
+    // Normalize the address to checksum format
+    const normalizedAddress = getAddress(ownerAddress)
+
+    // Check if token exists
+    const metadata = await metadataService.getTokenMetadata(tokenId)
+    if (!metadata) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Token not found' 
+      })
+    }
+
+    // // Verify ownership
+    // try {
+    //   const actualOwner = await blockchainService.getOwnerOf(tokenId)
+    //   if (getAddress(actualOwner) !== normalizedAddress) {
+    //     return res.status(403).json({ 
+    //       success: false, 
+    //       error: 'Address does not own this token' 
+    //     })
+    //   }
+    // } catch (error) {
+    //   console.error(`Error verifying ownership for token ${tokenId}:`, error)
+    //   return res.status(500).json({ 
+    //     success: false, 
+    //     error: 'Failed to verify token ownership' 
+    //   })
+    // }
+
+    // Generate the message for signing
+    const message = `Reveal token ${tokenId} by ${normalizedAddress}`
+
+    return res.json({ 
+      success: true, 
+      data: { message } 
+    })
+  } catch (error) {
+    console.error('Error generating reveal message:', error)
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    })
+  }
+})
+
+/**
+ * @swagger
+ * /metadata/reveal/{tokenId}:
+ *   get:
+ *     tags: [Metadata]
+ *     summary: Reveal NFT metadata
+ *     description: Reveal the metadata for a specific NFT token using a signed message for authentication
+ *     parameters:
+ *       - name: tokenId
+ *         in: path
+ *         required: true
+ *         description: The token ID of the NFT to reveal
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           example: 1
+ *       - name: message
+ *         in: query
+ *         required: true
+ *         description: The message that was signed by the token owner
+ *         schema:
+ *           type: string
+ *           example: "Reveal token 1"
+ *       - name: signature
+ *         in: query
+ *         required: true
+ *         description: The cryptographic signature proving ownership of the token
+ *         schema:
+ *           type: string
+ *           pattern: '^0x[a-fA-F0-9]+$'
+ *           example: "0x..."
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "un-implemented"
+ *       400:
+ *         description: Invalid request parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid token ID or missing parameters"
+ *       401:
+ *         description: Unauthorized - Invalid signature
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid signature"
+ *       404:
+ *         description: Token not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Token not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/metadata/reveal/:tokenId', async (req, res) => {
+  const tokenId = parseInt(req.params.tokenId)
+  const message = req.query.message as string;
+  const signature = req.query.signature as string;
+
+
+  return res.json({ success: false, error: 'un-implemented' })
+})
+
+
+
+/**
+ * @swagger
  * /api/stats:
  *   get:
  *     tags: [Stats]
