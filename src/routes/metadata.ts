@@ -19,13 +19,152 @@ const metadataService = new MetadataService()
 const mappingService = new MappingService()
 const blockchainService = new BlockchainService()
 
+/**
+ * @swagger
+ * /metadata/nft-info/{tokenId}:
+ *   get:
+ *     tags: [Metadata]
+ *     summary: Get NFT info by token ID
+ *     description: Retrieve detailed NFT information from database including metadata ID, box type, and owner address
+ *     parameters:
+ *       - name: tokenId
+ *         in: path
+ *         required: true
+ *         description: The token ID of the NFT
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           example: 1
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     tokenId:
+ *                       type: integer
+ *                       description: The unique token ID
+ *                       example: 1
+ *                     metadataId:
+ *                       type: integer
+ *                       nullable: true
+ *                       description: The metadata ID assigned to this token
+ *                       example: 42
+ *                     userAddress:
+ *                       type: string
+ *                       nullable: true
+ *                       description: The owner's wallet address
+ *                       example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+ *                     boxTypeId:
+ *                       type: integer
+ *                       description: The box type identifier
+ *                       example: 1
+ *                     originId:
+ *                       type: integer
+ *                       description: The origin metadata ID (0 if not revealed)
+ *                       example: 0
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the NFT info was created
+ *                       example: "2024-01-15T10:30:00.000Z"
+ *       400:
+ *         description: Invalid token ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid token ID"
+ */
+router.get('/metadata/nft-info/:tokenId', async (req, res) => {
+  const { tokenId } = req.params
+  const tokenIdNum = parseInt(tokenId)
+  if (isNaN(tokenIdNum) || tokenIdNum < 1) {
+    return res.status(400).json({ error: 'Invalid token ID' })
+  }
+  
+  const nftInfo = await prisma.nftInfo.findUnique({
+    where: { tokenId: tokenIdNum }
+  })
+  if(!nftInfo) {
+    return res.status(404).json({ error: 'Token not found' })
+  }
+
+
+  const isRevealed = nftInfo?.originId !== 0
+  const metadata = await metadataService.getTokenMetadataByMetadataId(nftInfo.metadataId || 0)
+
+  res.json({ success: true, data: {
+    nftInfo,
+    isRevealed,
+    metadata
+  } })
+})
+
+
+/**
+ * @swagger
+ * /metadata/tokensOfOwner/{address}:
+ *   get:
+ *     tags: [Metadata]
+ *     summary: Get tokens owned by address
+ *     description: Retrieve all token IDs owned by a specific wallet address
+ *     parameters:
+ *       - name: address
+ *         in: path
+ *         required: true
+ *         description: Ethereum wallet address
+ *         schema:
+ *           type: string
+ *           pattern: '^0x[a-fA-F0-9]{40}$'
+ *           example: "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *                   description: Array of token IDs owned by the address
+ *                   example: [1, 42, 123]
+ *       400:
+ *         description: Invalid address format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid address"
+ */
 router.get('/metadata/tokensOfOwner/:address', async (req, res) => {
   const { address } = req.params
   if (!isAddress(address, { strict: false })) {
     return res.status(400).json({ error: 'Invalid address' })
   }
   
-  const tokens = await blockchainService.getTokensOfOwner(address)
+  const tokens = await blockchainService.getTokensOfOwner(getAddress(address))
   res.json({ success: true, data: tokens })
 })
 
