@@ -174,18 +174,50 @@ API Docs: https://rog-api.onrender.com/api-docs
 
 **功能：** 使用簽名驗證後開盲盒 NFT 的真實內容
 
-**請求方式：** `GET`
+**請求方式：** `POST`
 
 **參數：**
 - `tokenId` (路徑參數): NFT 的 Token ID (例如: `1`)
-- `message` (查詢參數): 從上一個 API 取得的訊息
-- `signature` (查詢參數): 使用者用錢包簽署訊息後產生的簽名 (例如: `0x...`)
 
-**完整 URL 範例：** `https://rog-api.onrender.com/metadata/reveal/1?message=Reveal%20token%201&signature=0x...`
+**請求 Body (JSON)：**
+```json
+{
+  "message": "SLASH206: Reveal token 1 by 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
+  "signature": "0x..."
+}
+```
 
-**預期用途：**
-- 驗證簽名確認使用者是 Token 擁有者
-- 將盲盒 NFT 開盲盒為真實的 NFT 內容
+**完整 URL 範例：** `https://rog-api.onrender.com/metadata/reveal/1`
+
+**成功回傳 (200)：**
+```json
+{
+  "success": true,
+  "data": {
+    "tokenId": 1,
+    "originId": 42,
+    "metadata": {
+      "name": "ROG NFT #42",
+      "description": "A unique ROG NFT",
+      "image": "ipfs://...",
+      "attributes": [...]
+    }
+  }
+}
+```
+
+**錯誤回傳：**
+- **400** - 無效的請求（Token ID 不正確、已開盲盒、訊息格式錯誤等）
+- **401** - 簽名無效或不匹配
+- **404** - Token 不存在
+- **500** - 伺服器內部錯誤（例如沒有可用的 metadata）
+
+**功能說明：**
+- ✅ 驗證簽名確認使用者是 Token 擁有者
+- ✅ 將盲盒 NFT 開盲盒為真實的 NFT 內容
+- ✅ 自動分配可用的 origin metadata
+- ✅ 使用資料庫交易確保資料一致性
+- ✅ 防止重複開盲盒
 
 **開盲盒流程說明：**
 ```

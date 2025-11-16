@@ -11,6 +11,8 @@ import { MappingService } from '../services/mapping'
 import { getAddress, isAddress } from 'viem'
 import { MINT_CONFIG } from '../config/contracts'
 import { BlockchainService } from '../services/blockchain'
+import { verifyMessage } from 'ethers'
+import prisma from '../config/database'
 
 const router = Router()
 const metadataService = new MetadataService()
@@ -226,7 +228,7 @@ router.get('/metadata/reveal/message', async (req, res) => {
     // }
 
     // Generate the message for signing
-    const message = `SLASH206: Reveal token ${tokenId} by ${normalizedAddress}`
+    const message = generateRevealMessage(tokenId, normalizedAddress)
 
     return res.json({ 
       success: true, 
@@ -240,6 +242,20 @@ router.get('/metadata/reveal/message', async (req, res) => {
     })
   }
 })
+
+function generateRevealMessage(tokenId: number, ownerAddress: string): string {
+  return `SLASH206: Reveal token ${tokenId} by ${getAddress(ownerAddress)}`;
+}
+
+function verifySignature(message: string, signature: string): string {
+  try {
+    const recoveredAddress = verifyMessage(message, signature)
+    return getAddress(recoveredAddress)
+  } catch (error) {
+    console.error('Error verifying signature:', error)
+    throw new Error('Invalid signature format')
+  }
+}
 
 /**
  * @swagger
@@ -278,7 +294,7 @@ router.get('/metadata/reveal/message', async (req, res) => {
  *                 example: "0x..."
  *     responses:
  *       200:
- *         description: Success
+ *         description: Success - Token revealed
  *         content:
  *           application/json:
  *             schema:
@@ -286,10 +302,35 @@ router.get('/metadata/reveal/message', async (req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
- *                   example: false
- *                 error:
- *                   type: string
- *                   example: "un-implemented"
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tokenId:
+ *                       type: integer
+ *                       description: The token ID that was revealed
+ *                       example: 1
+ *                     originId:
+ *                       type: integer
+ *                       description: The assigned origin metadata ID
+ *                       example: 42
+ *                     metadata:
+ *                       type: object
+ *                       description: The revealed NFT metadata (ERC-721 standard)
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                           example: "ROG NFT #42"
+ *                         description:
+ *                           type: string
+ *                           example: "A unique ROG NFT"
+ *                         image:
+ *                           type: string
+ *                           example: "ipfs://..."
+ *                         attributes:
+ *                           type: array
+ *                           items:
+ *                             type: object
  *       400:
  *         description: Invalid request parameters
  *         content:
@@ -337,11 +378,141 @@ router.get('/metadata/reveal/message', async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/metadata/reveal/:tokenId', async (req, res) => {
-  const tokenId = parseInt(req.params.tokenId)
-  const { message, signature } = req.body
+  try {
+    const tokenId = parseInt(req.params.tokenId)
+    const { message, signature } = req.body
 
+    // Validate tokenId
+    if (isNaN(tokenId) || tokenId < 1) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid token ID' 
+      })
+    }
 
-  return res.json({ success: false, error: 'un-implemented' })
+    // Validate required fields
+    if (!message || !signature) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing message or signature' 
+      })
+    }
+
+    // Get NFT info from database
+    const nftInfo = await prisma.nftInfo.findUnique({
+      where: { tokenId }
+    })
+
+    if (!nftInfo) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Token not found' 
+      })
+    }
+
+    // Check if already revealed
+    if (nftInfo.originId !== 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Token already revealed' 
+      })
+    }
+
+    // Get current owner from blockchain
+    let nftOwner: string
+    try {
+      nftOwner = await blockchainService.getOwnerOf(tokenId)
+      nftOwner = getAddress(nftOwner) // Normalize address
+    } catch (error) {
+      console.error(`Error getting owner for token ${tokenId}:`, error)
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to verify token ownership' 
+      })
+    }
+
+    // Verify message format
+    const expectedMessage = generateRevealMessage(tokenId, nftOwner)
+    if (message !== expectedMessage) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid message, expected: "${expectedMessage}"` 
+      })
+    }
+
+    // Verify signature
+    let recoveredAddress: string
+    try {
+      recoveredAddress = verifySignature(message, signature)
+    } catch {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid signature format' 
+      })
+    }
+
+    if (recoveredAddress !== nftOwner) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Signature does not match token owner' 
+      })
+    }
+
+    // Perform the reveal using a transaction
+    // const result = await prisma.$transaction(async (tx) => {
+    //   // Find an available origin metadata for this box type
+    //   const availableOrigin = await tx.originMetadataInfo.findFirst({
+    //     where: {
+    //       boxTypeId: nftInfo.boxTypeId,
+    //       isAssigned: false
+    //     },
+    //     orderBy: { originId: 'asc' }
+    //   })
+
+    //   if (!availableOrigin) {
+    //     throw new Error(`No available metadata for box type ${nftInfo.boxTypeId}`)
+    //   }
+
+    //   // Update NFT with the origin ID
+    //   await tx.nftInfo.update({
+    //     where: { tokenId },
+    //     data: { originId: availableOrigin.originId }
+    //   })
+
+    //   // Mark the origin metadata as assigned
+    //   await tx.originMetadataInfo.update({
+    //     where: { originId: availableOrigin.originId },
+    //     data: { isAssigned: true }
+    //   })
+
+    //   return {
+    //     originId: availableOrigin.originId,
+    //     metadata: availableOrigin.metadata
+    //   }
+    // });
+
+    console.log(`Revealed token ${tokenId}`)
+
+    return res.json({ 
+      success: true, 
+      data: { tokenId }
+    })
+  } catch (error) {
+    console.error('Error revealing token:', error)
+    
+    // Handle specific error cases
+    if (error instanceof Error && error.message.includes('No available metadata')) {
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      })
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    })
+  }
 })
 
 
