@@ -274,17 +274,16 @@ const startServer = async () => {
     // console.log('✅ Mappings generated for existing NFTs')
 
     try {
-      const existingSeed = await blockchainService.syncRandomSeedFromContract()
+      const {
+        randomSeed,
+        needToGenerateMappings,
+      } = await blockchainService.syncRandomSeedFromContract()
       
-      if (existingSeed) {
-        console.log(`📦 Found existing random seed: ${existingSeed.toString()}`)
+      if (needToGenerateMappings) {
+        console.log(`📦 Found existing random seed: ${randomSeed.toString()}`)
         const maxSupply = await blockchainService.getMaxSupply()
-        await mappingService.generateAllMappings(existingSeed, maxSupply)
+        await mappingService.generateAllMappings(randomSeed, maxSupply)
         console.log('✅ Mappings generated for existing NFTs')
-      } else {
-        console.log('⏳ No random seed found, starting periodic monitoring...')
-        // Start the scheduler to periodically check for random seed
-        await schedulerService.startRandomSeedMonitoring()
       }
 
       // Start NFT Transfer event monitoring
@@ -307,8 +306,8 @@ const startServer = async () => {
       
       // Even if blockchain connection fails initially, start monitoring
       // The scheduler will handle connection retries
-      console.log('🔄 Starting random seed monitoring with retry logic...')
-      await schedulerService.startRandomSeedMonitoring()
+      // console.log('🔄 Starting random seed monitoring with retry logic...')
+      // await schedulerService.startRandomSeedMonitoring()
       
       // Also start NFT sync monitoring even if initial connection fails
       console.log('🔄 Starting NFT sync monitoring with retry logic...')

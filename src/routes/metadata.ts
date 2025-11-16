@@ -522,43 +522,62 @@ router.post('/metadata/reveal/:tokenId', async (req, res) => {
     }
 
     // Perform the reveal using a transaction
-    // const result = await prisma.$transaction(async (tx) => {
-    //   // Find an available origin metadata for this box type
-    //   const availableOrigin = await tx.originMetadataInfo.findFirst({
-    //     where: {
-    //       boxTypeId: nftInfo.boxTypeId,
-    //       isAssigned: false
-    //     },
-    //     orderBy: { originId: 'asc' }
-    //   })
+    const result = await prisma.$transaction(async (tx) => {
+      // Find an available origin metadata for this box type
+      const txNftInfo = await tx.nftInfo.findUnique({
+        where: { tokenId }
+      })
 
-    //   if (!availableOrigin) {
-    //     throw new Error(`No available metadata for box type ${nftInfo.boxTypeId}`)
-    //   }
+      if (!txNftInfo) {
+        throw new Error(`NFT info not found for tokenId: ${tokenId}`)
+      }
+      if(txNftInfo.originId !== 0) {
+        throw new Error(`Token ${tokenId} already revealed`)
+      }
+    
+      // Get all available origins and select one randomly
+      const availableOrigins = await tx.originMetadataInfo.findMany({
+        select: {
+          originId: true
+        },
+        where: {
+          boxTypeId: txNftInfo.boxTypeId,
+          isAssigned: false
+        },
+        take: 500
+      })
+      
+      if (availableOrigins.length === 0) {
+        throw new Error(`No available metadata for box type ${txNftInfo.boxTypeId}`)
+      }
+      
+      // Select a random origin from available ones
+      const randomIndex = Math.floor(Math.random() * availableOrigins.length)
+      const availableOrigin = availableOrigins[randomIndex]
 
-    //   // Update NFT with the origin ID
-    //   await tx.nftInfo.update({
-    //     where: { tokenId },
-    //     data: { originId: availableOrigin.originId }
-    //   })
+      // Update NFT with the origin ID
+      await tx.nftInfo.update({
+        where: { tokenId },
+        data: { originId: availableOrigin.originId }
+      })
 
-    //   // Mark the origin metadata as assigned
-    //   await tx.originMetadataInfo.update({
-    //     where: { originId: availableOrigin.originId },
-    //     data: { isAssigned: true }
-    //   })
+      // Mark the origin metadata as assigned
+      await tx.originMetadataInfo.update({
+        where: { originId: availableOrigin.originId },
+        data: { isAssigned: true }
+      })
 
-    //   return {
-    //     originId: availableOrigin.originId,
-    //     metadata: availableOrigin.metadata
-    //   }
-    // });
+      return {
+        originId: availableOrigin.originId
+      }
+    });
 
+    const metadata = await metadataService.getRevealedMetadata(result.originId)
     console.log(`Revealed token ${tokenId}`)
 
     return res.json({ 
       success: true, 
-      data: { tokenId }
+      data: { tokenId, metadataId: nftInfo.metadataId, metadata }
     })
   } catch (error) {
     console.error('Error revealing token:', error)

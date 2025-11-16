@@ -146,7 +146,10 @@ router.get('/admin/random-seed-status', async (req, res) => {
  */
 router.post('/admin/sync-randomseed', async (req, res) => {
   try {
-    const randomSeed = await blockchainService.syncRandomSeedFromContract()
+    const {
+      randomSeed,
+      needToGenerateMappings,
+    } = await blockchainService.syncRandomSeedFromContract()
     
     if (randomSeed) {
       const maxSupply = await blockchainService.getMaxSupply()
@@ -156,7 +159,8 @@ router.post('/admin/sync-randomseed', async (req, res) => {
     res.json({
       success: true,
       message: 'Random seed sync completed',
-      randomSeed: randomSeed?.toString() || null
+      randomSeed: randomSeed?.toString() || null,
+      needToGenerateMappings,
     })
   } catch (error) {
     console.error('Error syncing random seed:', error)
@@ -564,28 +568,28 @@ router.get('/admin/scheduler/status', (req, res) => {
   }
 })
 
-/**
- * @swagger
- * /admin/scheduler/start:
- *   post:
- *     tags: [Admin]
- *     summary: Start random seed monitoring
- *     responses:
- *       200:
- *         description: Success
- */
-router.post('/admin/scheduler/start', async (req, res) => {
-  try {
-    await schedulerService.startRandomSeedMonitoring()
-    res.json({
-      success: true,
-      message: 'Random seed monitoring started'
-    })
-  } catch (error) {
-    console.error('Error starting scheduler:', error)
-    res.status(500).json({ success: false, error: 'Failed to start monitoring' })
-  }
-})
+// /**
+//  * @swagger
+//  * /admin/scheduler/start:
+//  *   post:
+//  *     tags: [Admin]
+//  *     summary: Start random seed monitoring
+//  *     responses:
+//  *       200:
+//  *         description: Success
+//  */
+// router.post('/admin/scheduler/start', async (req, res) => {
+//   try {
+//     await schedulerService.startRandomSeedMonitoring()
+//     res.json({
+//       success: true,
+//       message: 'Random seed monitoring started'
+//     })
+//   } catch (error) {
+//     console.error('Error starting scheduler:', error)
+//     res.status(500).json({ success: false, error: 'Failed to start monitoring' })
+//   }
+// })
 
 /**
  * @swagger

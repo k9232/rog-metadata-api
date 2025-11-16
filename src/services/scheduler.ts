@@ -28,27 +28,6 @@ export class SchedulerService {
   }
 
   /**
-   * Start periodic random seed monitoring
-   */
-  async startRandomSeedMonitoring(): Promise<void> {
-    if (this.isRunning) {
-      console.log('Random seed monitoring is already running')
-      return
-    }
-
-    console.log(`Starting random seed monitoring (checking every ${this.checkInterval}ms)`)
-    this.isRunning = true
-
-    // Check immediately first
-    await this.checkRandomSeed()
-
-    // Then check periodically
-    this.intervalId = setInterval(async () => {
-      await this.checkRandomSeed()
-    }, this.checkInterval)
-  }
-
-  /**
    * Stop the random seed monitoring
    */
   stopRandomSeedMonitoring(): void {
@@ -180,58 +159,6 @@ export class SchedulerService {
   }
 
   /**
-   * Internal method to check random seed from blockchain
-   */
-  private async checkRandomSeed(): Promise<void> {
-    try {
-      console.log('Checking for random seed updates...')
-      
-      // Check if blockchain service is configured
-      if (!this.blockchainService.isServiceConfigured()) {
-        console.log('⏳ Blockchain service not configured, skipping random seed check...')
-        return
-      }
-      
-      // Check if we already have a synced random seed with mappings generated
-      const existingSeed = await prisma.randomSeedInfo.findFirst({
-        where: { mappingsGenerated: true },
-        orderBy: { syncedAt: 'desc' }
-      })
-
-      if (existingSeed) {
-        console.log(`Random seed already synced and mappings generated: ${existingSeed.randomSeed}`)
-        this.stopRandomSeedMonitoring()
-        return
-      }
-
-      // Try to sync from contract
-      const randomSeed = await this.blockchainService.syncRandomSeedFromContract()
-      
-      if (randomSeed) {
-        console.log(`✅ Random seed found and synced: ${randomSeed.toString()}`)
-        
-        // Generate mappings
-        const maxSupply = await this.blockchainService.getMaxSupply()
-        await this.mappingService.generateAllMappings(randomSeed, maxSupply)
-        
-        console.log('✅ Mappings generated successfully')
-        
-        // Stop monitoring since we found and processed the seed
-        this.stopRandomSeedMonitoring()
-        
-        // Emit success event (could be used for notifications)
-        this.onRandomSeedSynced(randomSeed)
-      } else {
-        console.log('⏳ Random seed not yet available, will check again...')
-      }
-      
-    } catch (error) {
-      console.error('❌ Error checking random seed:', error)
-      // Continue monitoring even if there's an error
-    }
-  }
-
-  /**
    * Callback for when random seed is successfully synced
    * Can be overridden or extended for custom behavior
    */
@@ -256,7 +183,10 @@ export class SchedulerService {
         }
       }
 
-      const randomSeed = await this.blockchainService.syncRandomSeedFromContract()
+      const {
+        randomSeed,
+        needToGenerateMappings,
+      } = await this.blockchainService.syncRandomSeedFromContract()
       
       if (randomSeed) {
         const maxSupply = await this.blockchainService.getMaxSupply()

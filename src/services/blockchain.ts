@@ -100,23 +100,35 @@ export class BlockchainService {
     return owner
   }
 
-  async syncRandomSeedFromContract(): Promise<bigint | null> {
+  async syncRandomSeedFromContract(): Promise<{ randomSeed: bigint; needToGenerateMappings: boolean }> {
     try {
       this.checkConfiguration()
+      let needToGenerateMappings = false;
       const { randomSeed, isRevealed } = await this.getRandomSeedStatus()
       
       if (!isRevealed || randomSeed === 0n) {
         console.log('Random seed not yet revealed on contract')
-        return null
+        return {
+          randomSeed: 0n,
+          needToGenerateMappings: false
+        }
       }
 
       const existing = await prisma.randomSeedInfo.findUnique({
         where: { randomSeed: randomSeed.toString() }
       })
 
-      if (!existing) {
-        await prisma.randomSeedInfo.create({
-          data: {
+      if (!existing || (existing && existing.randomSeed !== randomSeed.toString())) {
+        needToGenerateMappings = true;
+        await prisma.randomSeedInfo.upsert({
+          where: {
+            id: 1,
+          },
+          create: {
+            randomSeed: randomSeed.toString(),
+            syncedAt: new Date()
+          },
+          update: {
             randomSeed: randomSeed.toString(),
             syncedAt: new Date()
           }
@@ -124,7 +136,10 @@ export class BlockchainService {
         console.log(`Synced new random seed: ${randomSeed.toString()}`)
       }
 
-      return randomSeed
+      return {
+        randomSeed,
+        needToGenerateMappings
+      }
     } catch (error) {
       console.error('Error syncing random seed:', error)
       throw error
