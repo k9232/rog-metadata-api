@@ -82,6 +82,48 @@ router.get('/metadata/:tokenId', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /metadata/revealed/{metadataId}:
+ *   get:
+ *     tags: [Metadata]
+ *     summary: Get NFT metadata by metadata ID
+ *     description: Retrieve metadata for a specific NFT using its metadata ID instead of token ID
+ *     parameters:
+ *       - name: metadataId
+ *         in: path
+ *         required: true
+ *         description: The metadata ID of the NFT
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           example: 42
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TokenMetadata'
+ *       400:
+ *         description: Invalid metadata ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Token not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get('/metadata/revealed/:metadataId', async (req, res) => {
   try {
     const metadataId = parseInt(req.params.metadataId)
