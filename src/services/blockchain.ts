@@ -26,6 +26,7 @@ export class BlockchainService {
         console.warn('⚠️ CONTRACT_ADDRESS not configured or invalid, blockchain features will be disabled')
         return
       }
+      console.log('CONTRACT_CONFIG.address', CONTRACT_CONFIG.address)
 
       // Initialize provider and contract
       this.provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.rpcUrl)
