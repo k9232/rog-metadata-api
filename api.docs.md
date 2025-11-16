@@ -10,7 +10,7 @@ API Docs: https://rog-api.onrender.com/api-docs
 
 **請求方式：** `GET`
 
-**完整 URL：** [https://rog-metadata-api.onrender.com/api/mint/config](https://rog-metadata-api.onrender.com/api/mint/config)
+**完整 URL：** [https://rog-api.onrender.com/api/mint/config](https://rog-api.onrender.com/api/mint/config)
 
 **回傳資料：**
 ```json
@@ -72,20 +72,20 @@ API Docs: https://rog-api.onrender.com/api-docs
 
 ---
 
-### 3. **NFT 收藏品資訊 API** - `/api/nft`
+### 3. **NFT 資訊 API** - `/api/nft`
 
 **功能：** 獲取 NFT 收藏品的統計資訊
 
 **請求方式：** `GET`
 
-**完整 URL：** [https://rog-metadata-api.onrender.com/api/nft](https://rog-metadata-api.onrender.com/api/nft)
+**完整 URL：** [https://rog-api.onrender.com/api/nft](https://rog-api.onrender.com/api/nft)
 
 **回傳資料：**
 ```json
 {
   "success": true,
   "data": {
-    "totalSupply": 1500,                        // 目前已鑄造的 NFT 數量
+    "totalSupply": 1,                        // 目前已鑄造的 NFT 數量
     "maxSupply": 6020                           // 最大供應量
   }
 }
@@ -110,7 +110,7 @@ API Docs: https://rog-api.onrender.com/api-docs
 - **網路**: Sepolia 測試網 (Chain ID: 11155111)
 - **NFT 合約**: `0x7c8614E7F475A95FB9362e8709B7623B556E0603`
 - **鑄造價格**: 免費 (0 ETH)
-- **API 基礎 URL**: `https://rog-metadata-api.onrender.com`
+- **API 基礎 URL**: `https://rog-api.onrender.com`
 
 ### 鑄造階段時間表
 
@@ -132,3 +132,74 @@ API Docs: https://rog-api.onrender.com/api-docs
 ### 安全機制
 
 系統會為 Phase2 持有者生成特殊的鑄造簽名，確保只有授權用戶能在 Soulbound 階段進行鑄造。簽名包含用戶地址、Token ID 和盲盒類型等資訊，防止未授權的鑄造行為。
+
+---
+
+### 4. **取得揭示訊息 API** - `/metadata/reveal/message`
+
+**功能：** 產生用於 NFT 揭示的簽名訊息
+
+**請求方式：** `GET`
+
+**參數：**
+- `tokenId`: NFT 的 Token ID (例如: `1`)
+- `ownerAddress`: 聲稱擁有該 NFT 的錢包地址 (例如: `0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6`)
+
+**完整 URL 範例：** `https://rog-api.onrender.com/metadata/reveal/message?tokenId=1&ownerAddress=0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6`
+
+**成功回傳 (200)：**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Reveal token 1 by 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+  }
+}
+```
+
+**錯誤回傳：**
+- **400** - 無效的 Token ID 或地址格式
+- **403** - 該地址不是 Token 的擁有者 (目前已註解，不會檢查)
+- **404** - Token 不存在
+- **500** - 伺服器內部錯誤
+
+**用途：** 
+- 在揭示 NFT 前，先取得需要簽名的訊息
+- 使用者用錢包簽署此訊息後，可證明自己是 Token 的擁有者
+- 配合下一個 API 使用，完成 NFT 揭示流程
+
+---
+
+### 5. **揭示 NFT API** - `/metadata/reveal/{tokenId}`
+
+**功能：** 使用簽名驗證後揭示 NFT 的真實內容
+
+**請求方式：** `GET`
+
+**參數：**
+- `tokenId` (路徑參數): NFT 的 Token ID (例如: `1`)
+- `message` (查詢參數): 從上一個 API 取得的訊息
+- `signature` (查詢參數): 使用者用錢包簽署訊息後產生的簽名 (例如: `0x...`)
+
+**完整 URL 範例：** `https://rog-api.onrender.com/metadata/reveal/1?message=Reveal%20token%201&signature=0x...`
+
+**目前狀態：** ⚠️ 尚未實作
+
+**預期用途：**
+- 驗證簽名確認使用者是 Token 擁有者
+- 將盲盒 NFT 揭示為真實的 NFT 內容
+- 更新資料庫中的 NFT 資訊
+
+**揭示流程說明：**
+```
+步驟 1: 呼叫 /metadata/reveal/message API 取得簽名訊息
+    ↓
+步驟 2: 使用者用錢包 (MetaMask 等) 簽署該訊息
+    ↓
+步驟 3: 呼叫 /metadata/reveal/:tokenId API 並帶入簽名
+    ↓
+步驟 4: 系統驗證簽名並揭示 NFT 真實內容
+```
+
+---
+<!-- TODO:  -->

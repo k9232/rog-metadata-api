@@ -244,7 +244,7 @@ router.get('/metadata/reveal/message', async (req, res) => {
 /**
  * @swagger
  * /metadata/reveal/{tokenId}:
- *   get:
+ *   post:
  *     tags: [Metadata]
  *     summary: Reveal NFT metadata
  *     description: Reveal the metadata for a specific NFT token using a signed message for authentication
@@ -257,21 +257,25 @@ router.get('/metadata/reveal/message', async (req, res) => {
  *           type: integer
  *           minimum: 1
  *           example: 1
- *       - name: message
- *         in: query
- *         required: true
- *         description: The message that was signed by the token owner
- *         schema:
- *           type: string
- *           example: "Reveal token 1"
- *       - name: signature
- *         in: query
- *         required: true
- *         description: The cryptographic signature proving ownership of the token
- *         schema:
- *           type: string
- *           pattern: '^0x[a-fA-F0-9]+$'
- *           example: "0x..."
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *               - signature
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The message that was signed by the token owner
+ *                 example: "Reveal token 1 by 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+ *               signature:
+ *                 type: string
+ *                 description: The cryptographic signature proving ownership of the token
+ *                 pattern: '^0x[a-fA-F0-9]+$'
+ *                 example: "0x..."
  *     responses:
  *       200:
  *         description: Success
@@ -332,10 +336,9 @@ router.get('/metadata/reveal/message', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/metadata/reveal/:tokenId', async (req, res) => {
+router.post('/metadata/reveal/:tokenId', async (req, res) => {
   const tokenId = parseInt(req.params.tokenId)
-  const message = req.query.message as string;
-  const signature = req.query.signature as string;
+  const { message, signature } = req.body
 
 
   return res.json({ success: false, error: 'un-implemented' })
