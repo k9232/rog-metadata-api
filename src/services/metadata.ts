@@ -23,11 +23,14 @@ export class MetadataService {
       return null
     }
 
-    if (nftInfo.originId === 0) {
-      return await this.getBlindBoxMetadata(nftInfo.boxTypeId)
-    } else {
-      return await this.getRevealedMetadata(nftInfo.originId)
-    }
+    return await this.getBlindBoxMetadata(nftInfo.boxTypeId)
+
+    // TODO: 
+    // if (nftInfo.originId === 0) {
+    //   return await this.getBlindBoxMetadata(nftInfo.boxTypeId)
+    // } else {
+    //   return await this.getRevealedMetadata(nftInfo.originId)
+    // }
   }
 
   async getBlindBoxMetadata(boxTypeId: number): Promise<TokenMetadata> {
