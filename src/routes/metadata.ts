@@ -82,6 +82,27 @@ router.get('/metadata/:tokenId', async (req, res) => {
   }
 })
 
+router.get('/metadata/revealed/:metadataId', async (req, res) => {
+  try {
+    const metadataId = parseInt(req.params.metadataId)
+    
+    if (isNaN(metadataId) || metadataId < 1) {
+      return res.status(400).json({ error: 'Invalid token ID' })
+    }
+
+    const metadata = await metadataService.getTokenMetadataByMetadataId(metadataId)
+    
+    if (!metadata) {
+      return res.status(404).json({ error: 'Token not found' })
+    }
+
+    res.json(metadata)
+  } catch (error) {
+    console.error(`Error getting metadata for token ${req.params.metadataId}:`, error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 /**
  * @swagger
  * /metadata/reveal/message:

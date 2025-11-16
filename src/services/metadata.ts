@@ -14,6 +14,22 @@ export interface TokenMetadata {
 }
 
 export class MetadataService {
+  async getTokenMetadataByMetadataId(metadataId: number): Promise<TokenMetadata | null> {
+    const nftInfo = await prisma.nftInfo.findFirst({
+      where: { metadataId }
+    })
+
+    if (!nftInfo) {
+      throw new Error(`NFT info not found for metadataId: ${metadataId}`)
+    }
+
+    if (nftInfo.originId === 0) {
+      return await this.getBlindBoxMetadata(nftInfo.boxTypeId)
+    } else {
+      return await this.getRevealedMetadata(nftInfo.originId)
+    }
+  }
+
   async getTokenMetadata(tokenId: number): Promise<TokenMetadata | null> {
     const nftInfo = await prisma.nftInfo.findUnique({
       where: { tokenId }

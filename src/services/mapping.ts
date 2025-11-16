@@ -22,9 +22,10 @@ export class MappingService {
       })
       console.log(`Updated NFT ${nft.tokenId} with metadataId ${metadataId}`)
     }
-    await prisma.randomSeedInfo.update({
+    await prisma.randomSeedInfo.upsert({
       where: { randomSeed: randomSeed.toString() },
-      data: { mappingsGenerated: true }
+      update: { mappingsGenerated: true },
+      create: { randomSeed: randomSeed.toString(), mappingsGenerated: true }
     });
     console.log('✅ Mappings generated for existing NFTs')
     return;
