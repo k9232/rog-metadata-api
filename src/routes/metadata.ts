@@ -110,7 +110,7 @@ router.get('/metadata/nft-info/:tokenId', async (req, res) => {
     ...nftInfo,
     isRevealed,
     metadata,
-    userAddress: nftInfo.userAddress
+    userAddress: undefined,
   } })
 })
 
