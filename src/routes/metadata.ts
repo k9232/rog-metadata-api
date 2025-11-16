@@ -503,23 +503,23 @@ router.post('/metadata/reveal/:tokenId', async (req, res) => {
       })
     }
 
-    // Verify signature
-    let recoveredAddress: string
-    try {
-      recoveredAddress = verifySignature(message, signature)
-    } catch {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Invalid signature format' 
-      })
-    }
+    // // Verify signature
+    // let recoveredAddress: string
+    // try {
+    //   recoveredAddress = verifySignature(message, signature)
+    // } catch {
+    //   return res.status(401).json({ 
+    //     success: false, 
+    //     error: 'Invalid signature format' 
+    //   })
+    // }
 
-    if (recoveredAddress !== nftOwner) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Signature does not match token owner' 
-      })
-    }
+    // if (recoveredAddress !== nftOwner) {
+    //   return res.status(401).json({ 
+    //     success: false, 
+    //     error: 'Signature does not match token owner' 
+    //   })
+    // }
 
     // Perform the reveal using a transaction
     const result = await prisma.$transaction(async (tx) => {
