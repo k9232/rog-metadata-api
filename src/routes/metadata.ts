@@ -107,9 +107,10 @@ router.get('/metadata/nft-info/:tokenId', async (req, res) => {
   const metadata = await metadataService.getTokenMetadataByMetadataId(nftInfo.metadataId || 0)
 
   res.json({ success: true, data: {
-    nftInfo,
+    ...nftInfo,
     isRevealed,
-    metadata
+    metadata,
+    userAddress: nftInfo.userAddress
   } })
 })
 
