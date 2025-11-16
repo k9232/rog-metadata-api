@@ -20,7 +20,7 @@ export class MetadataService {
     })
 
     if (!nftInfo) {
-      throw new Error(`NFT info not found for metadataId: ${metadataId}`)
+      return null
     }
 
     if (nftInfo.originId === 0) {
