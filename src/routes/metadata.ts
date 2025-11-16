@@ -19,6 +19,16 @@ const metadataService = new MetadataService()
 const mappingService = new MappingService()
 const blockchainService = new BlockchainService()
 
+router.get('/metadata/tokensOfOwner/:address', async (req, res) => {
+  const { address } = req.params
+  if (!isAddress(address, { strict: false })) {
+    return res.status(400).json({ error: 'Invalid address' })
+  }
+  
+  const tokens = await blockchainService.getTokensOfOwner(address)
+  res.json({ success: true, data: tokens })
+})
+
 /**
  * @swagger
  * /metadata/{tokenId}:
@@ -871,5 +881,6 @@ router.get('/api/nft', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' })
   }
 })
+
 
 export default router;

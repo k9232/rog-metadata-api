@@ -272,4 +272,14 @@ export class BlockchainService {
   isServiceConfigured(): boolean {
     return this.isConfigured
   }
+
+  async getTokensOfOwner(address: string): Promise<Array<{
+    tokenId: bigint;
+    metadataId: number;
+    metadata: any;
+  }>> {
+    this.checkConfiguration()
+    const tokens = await this.contract!.tokensOfOwner(address)
+    return tokens.map((tokenId: bigint) => Number(tokenId));
+  }
 }
