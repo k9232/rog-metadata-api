@@ -8,7 +8,7 @@
 import { Router } from 'express'
 import { MetadataService } from '../services/metadata'
 import { MappingService } from '../services/mapping'
-import { getAddress, isAddress } from 'viem'
+import { getAddress, isAddress, zeroAddress } from 'viem'
 import { MINT_CONFIG } from '../config/contracts'
 import { BlockchainService } from '../services/blockchain'
 import { verifyMessage } from 'ethers'
@@ -950,10 +950,20 @@ router.get('/api/mint/soulbound/:address', async (req, res) => {
     // Get all signatures for this holder
     const mintInfo = await metadataService.getPhase2HolderMintInfo(address)
     if (!mintInfo) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'No signatures found for this Phase2 holder' 
+      return res.json({
+        success: false,
+        data: {
+          id: 0,
+          boxTypeId: 0,
+          userAddress: address,
+          signature: zeroAddress,
+          createdAt: new Date().toISOString()
+        }
       })
+      // return res.status(404).json({ 
+      //   success: false, 
+      //   error: 'No signatures found for this Phase2 holder' 
+      // })
     }
     
     res.json({ 
