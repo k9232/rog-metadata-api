@@ -1,8 +1,36 @@
+import { zeroAddress } from 'viem';
 import prisma from '../config/database'
 import { calculateMetadataId } from '../utils/crypto'
 
 export class MappingService {
   async generateAllMappings(randomSeed: bigint, maxSupply: number): Promise<void> {
+
+
+    const lastNftInfo = await prisma.nftInfo.findFirst({
+      orderBy: { tokenId: 'desc' }
+    })
+    if(lastNftInfo) {
+      const lastTokenId = lastNftInfo.tokenId + 1;
+      const newNftInfos: any[] = [];
+      for(let i = lastTokenId; i <= maxSupply; i++) {
+        const metadataId = calculateMetadataId(i, randomSeed, maxSupply)
+        newNftInfos.push({ 
+          tokenId: i,
+          metadataId: metadataId,
+          boxTypeId: 3,
+          userAddress: zeroAddress,
+          originId: 0,
+          createdAt: new Date()
+        })
+      }
+      await prisma.nftInfo.createMany({
+        data: newNftInfos
+      })
+      console.log(`Generated mappings for ${maxSupply - lastNftInfo.tokenId} NFTs`)
+
+      throw new Error('Stop here')
+    }
+
     console.log(`Generating mappings for ${maxSupply} tokens with seed: ${randomSeed.toString()}`)
 
     const existingNfts = await prisma.nftInfo.findMany({
@@ -16,11 +44,13 @@ export class MappingService {
     for (const nft of existingNfts) {
       const metadataId = calculateMetadataId(nft.tokenId, randomSeed, maxSupply)
 
-      await prisma.nftInfo.update({
-        where: { tokenId: nft.tokenId },
-        data: { metadataId }
-      })
-      console.log(`Updated NFT ${nft.tokenId} with metadataId ${metadataId}`)
+      if(!nft.metadataId) {
+        await prisma.nftInfo.update({
+          where: { tokenId: nft.tokenId },
+          data: { metadataId }
+        })
+        console.log(`Updated NFT ${nft.tokenId} with metadataId ${metadataId}`)
+      }
     }
     await prisma.randomSeedInfo.upsert({
       where: { randomSeed: randomSeed.toString() },

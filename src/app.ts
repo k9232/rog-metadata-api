@@ -269,9 +269,10 @@ const startServer = async () => {
   try {
     console.log('🚀 Starting ROG Blind Box Metadata API...')
 
-    // const maxSupply = await blockchainService.getMaxSupply();
-    // await mappingService.generateAllMappings(BigInt(MINT_CONFIG.randomSeed), maxSupply)
-    // console.log('✅ Mappings generated for existing NFTs')
+
+    const maxSupply = 6020;
+    await mappingService.generateAllMappings(BigInt(MINT_CONFIG.randomSeed), maxSupply)
+    console.log('✅ Mappings generated for existing NFTs')
 
     try {
       const {
